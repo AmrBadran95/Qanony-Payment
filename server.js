@@ -6,14 +6,8 @@ const cors = require("cors");
 const admin = require("firebase-admin");
 const fs = require("fs");
 
-const serviceAccount = JSON.parse(
-  fs
-    .readFileSync(
-      "./qanony-app-firebase-adminsdk-fbsvc-10ba40e225.json",
-      "utf8"
-    )
-    .replace(/\\n/g, "\n")
-);
+const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
+serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
