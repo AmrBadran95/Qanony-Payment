@@ -4,11 +4,12 @@ require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const cors = require("cors");
 const admin = require("firebase-admin");
-const fs = require("fs");
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
+// Parse Firebase credentials from environment
+const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK);
 serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
 
+// Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
@@ -18,12 +19,12 @@ const db = admin.firestore();
 app.use(cors());
 app.use(express.json());
 
-/** Health Check Route **/
+/** Health Check **/
 app.get("/", (req, res) => {
   res.send("Qanony Stripe + Firebase server is running!");
 });
 
-/** Payment Route **/
+/** Create Payment Intent **/
 app.post("/create-payment-intent", async (req, res) => {
   try {
     let { amount, email } = req.body;
@@ -38,13 +39,10 @@ app.post("/create-payment-intent", async (req, res) => {
     });
 
     const paymentData = {
-      amount: amount,
+      amount,
       time: new Date().toISOString(),
+      ...(email && { email }),
     };
-
-    if (email) {
-      paymentData.email = email;
-    }
 
     await db.collection("payments").add(paymentData);
 
