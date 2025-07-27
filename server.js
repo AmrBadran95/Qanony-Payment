@@ -5,7 +5,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const cors = require("cors");
 const admin = require("firebase-admin");
 
-const serviceAccount = require("./qanony-app-firebase-adminsdk-fbsvc-10ba40e225.json");
+const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -15,10 +15,12 @@ const db = admin.firestore();
 app.use(cors());
 app.use(express.json());
 
-// app.get("/", (req, res) => {
-//   res.send("Server is up and running!");
-// });
+/**Health Check Route **/
+app.get("/", (req, res) => {
+  res.send("Qanony Stripe + Firebase server is running!");
+});
 
+/**Payment Route **/
 app.post("/create-payment-intent", async (req, res) => {
   try {
     let { amount, email } = req.body;
@@ -52,4 +54,5 @@ app.post("/create-payment-intent", async (req, res) => {
   }
 });
 
-app.listen(3000, () => console.log("Server running on port 3000"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
