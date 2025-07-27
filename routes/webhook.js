@@ -3,7 +3,7 @@ const router = express.Router();
 const stripe = require("../config/stripe");
 const firestore = require("../config/firebase");
 const firestoreService = require("../services/firestoreService");
-const SubscriptionModel = require("../models/SubscriptionModel");
+const SubscriptionModel = require("../models/subscriptionModel");
 
 router.post(
   "/webhook",

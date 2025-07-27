@@ -1,4 +1,4 @@
-const SubscriptionModel = require("../models/SubscriptionModel");
+const SubscriptionModel = require("../models/subscriptionModel");
 const firestoreService = require("../services/firestoreService");
 
 const createSubscription = async (req, res) => {
