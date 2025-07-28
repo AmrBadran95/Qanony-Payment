@@ -7,7 +7,6 @@ const app = express();
 
 const paymentRoutes = require("./routes/paymentRoutes");
 const subscriptionControllerRoutes = require("./routes/subscriptionRoutes");
-const subscriptionPaymentRoutes = require("./routes/subscriptionPaymentRoute");
 const webhookRoutes = require("./routes/webhookRoutes");
 const stripeCustomerRoutes = require("./routes/stripeCustomerRoutes");
 
@@ -18,7 +17,6 @@ app.use(express.json());
 
 app.use("/api/payments", paymentRoutes);
 app.use("/api/subscriptions", subscriptionControllerRoutes);
-app.use("/api/subscription-payments", subscriptionPaymentRoutes);
 app.use("/api/stripe-customers", stripeCustomerRoutes);
 app.use("/api/webhook", webhookRoutes);
 
