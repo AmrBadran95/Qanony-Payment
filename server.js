@@ -5,15 +5,20 @@ require("dotenv").config();
 require("./config/firebase");
 
 const paymentRoutes = require("./routes/paymentRoutes");
-const subscriptionRoutes = require("./routes/subscriptionRoutes");
+const subscriptionControllerRoutes = require("./routes/subscriptionRoutes");
 const webhookRoutes = require("./routes/webhook");
+const stripeCustomerRoutes = require("./routes/stripeCustomerRoutes");
+const subscriptionPaymentRoute = require("./routes/subscriptionPaymentRoute");
 
 app.use(cors());
+
 app.use("/api/webhook", express.raw({ type: "application/json" }));
+
 app.use(express.json());
 
 app.use("/api/payments", paymentRoutes);
-app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/subscriptions", subscriptionControllerRoutes);
+app.use("/api/subscriptions", subscriptionPaymentRoute);
 app.use("/api/webhook", webhookRoutes);
 
 app.get("/", (req, res) => {

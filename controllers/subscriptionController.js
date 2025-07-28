@@ -1,52 +1,69 @@
+const stripe = require("../config/stripe");
 const SubscriptionModel = require("../models/subscriptionModel");
 const firestoreService = require("../services/firestoreService");
 
-const createSubscription = async (req, res) => {
+const createStripeSubscriptionAndSave = async (req, res) => {
   try {
-    const {
-      lawyerId,
-      subscriptionType,
-      subscriptionStartDate,
-      subscriptionEndDate,
-      moneyPaid,
-    } = req.body;
+    const { lawyerId, priceId, subscriptionType } = req.body;
 
-    if (
-      !lawyerId ||
-      !subscriptionType ||
-      !subscriptionStartDate ||
-      !subscriptionEndDate ||
-      !moneyPaid
-    ) {
+    if (!lawyerId || !priceId || !subscriptionType) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const subscription = new SubscriptionModel({
-      lawyerId,
-      subscriptionType,
-      subscriptionStartDate: new Date(subscriptionStartDate),
-      subscriptionEndDate: new Date(subscriptionEndDate),
-      moneyPaid,
-      createdAt: new Date(),
+    const lawyerDoc = await firestoreService.getLawyerById(lawyerId);
+    if (!lawyerDoc.exists) {
+      return res.status(404).json({ error: "Lawyer not found" });
+    }
+
+    const lawyerData = lawyerDoc.data();
+    const customerId = lawyerData.stripeCustomerId;
+
+    if (!customerId) {
+      return res.status(400).json({ error: "Lawyer has no Stripe customerId" });
+    }
+
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId }],
+      payment_behavior: "default_incomplete",
+      expand: ["latest_invoice.payment_intent"],
     });
 
-    await firestoreService.saveSubscription(subscription.toFirestore());
+    const paymentIntent = subscription.latest_invoice.payment_intent;
+    const clientSecret = paymentIntent.client_secret;
+
+    const now = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    const subscriptionData = new SubscriptionModel({
+      lawyerId,
+      subscriptionType,
+      subscriptionStartDate: now,
+      subscriptionEndDate: endDate,
+      moneyPaid: 0,
+      createdAt: now,
+    });
+
+    await firestoreService.saveSubscription(subscriptionData.toFirestore());
 
     await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
       subscriptionType,
-      subscriptionStartDate: new Date(subscriptionStartDate),
-      subscriptionEndDate: new Date(subscriptionEndDate),
+      subscriptionStartDate: now,
+      subscriptionEndDate: endDate,
     });
 
-    return res
-      .status(201)
-      .json({ message: "Subscription created successfully" });
+    return res.status(201).json({
+      subscriptionId: subscription.id,
+      clientSecret,
+      message: "Subscription created, awaiting payment confirmation",
+    });
   } catch (err) {
-    console.error("Error creating subscription:", err);
-    return res.status(500).json({ error: "Internal Server Error" });
+    console.error("Stripe + Firestore Error:", err);
+    return res.status(500).json({ error: "Failed to create subscription" });
   }
 };
 
 module.exports = {
-  createSubscription,
+  createStripeSubscriptionAndSave,
 };
