@@ -18,10 +18,13 @@ const createLawyerSubscription = async (req, res) => {
     }
 
     const lawyerData = lawyerDoc.data();
-    if (!lawyerData.email) {
-      return res
-        .status(400)
-        .json({ error: "Lawyer is missing an email in Firestore" });
+    const email = lawyerData.email;
+    const stripeConnectAccountId = lawyerData.stripeConnectAccountId;
+
+    if (!email || !stripeConnectAccountId) {
+      return res.status(400).json({
+        error: "Lawyer must have both email and stripeConnectAccountId",
+      });
     }
 
     let customerId = lawyerData.stripeCustomerId;
@@ -29,7 +32,6 @@ const createLawyerSubscription = async (req, res) => {
       try {
         await stripe.customers.retrieve(customerId);
       } catch {
-        console.warn("Invalid Stripe customer, creating new one...");
         customerId = null;
         await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
           stripeCustomerId: null,
@@ -39,7 +41,7 @@ const createLawyerSubscription = async (req, res) => {
 
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: lawyerData.email,
+        email,
         metadata: { lawyerId },
       });
       customerId = customer.id;
@@ -49,54 +51,47 @@ const createLawyerSubscription = async (req, res) => {
       });
     }
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: parseInt(amount),
-      currency: "egp",
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
       customer: customerId,
-      description: `Qanony ${subscriptionType} subscription`,
+      line_items: [
+        {
+          price_data: {
+            currency: "egp",
+            product_data: {
+              name: `Qanony ${subscriptionType} subscription`,
+            },
+            unit_amount: parseInt(amount),
+          },
+          quantity: 1,
+        },
+      ],
+      payment_intent_data: {
+        transfer_data: {
+          destination: stripeConnectAccountId,
+        },
+        metadata: {
+          lawyerId,
+          subscriptionType,
+        },
+      },
       metadata: {
         lawyerId,
         subscriptionType,
       },
+      success_url: "qanony://payment-success?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "qanony://payment-cancel",
     });
 
-    const now = new Date();
-    const endDate = new Date();
-    if (subscriptionType === "monthly") {
-      endDate.setMonth(endDate.getMonth() + 1);
-    } else if (subscriptionType === "yearly") {
-      endDate.setFullYear(endDate.getFullYear() + 1);
-    }
-
-    const subscriptionData = new SubscriptionModel({
-      lawyerId,
-      subscriptionType,
-      subscriptionStart: now,
-      subscriptionEnd: endDate,
-      moneyPaid: 5000,
-      subscriptionStatus: "active",
-      createdAt: now,
-    });
-
-    const subscriptionId = await firestoreService.saveSubscription(
-      subscriptionData.toPlainObject()
-    );
-
-    await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
-      subscriptionType,
-      subscriptionStart: now,
-      subscriptionEnd: endDate,
-    });
-
-    return res.status(201).json({
-      subscriptionId,
-      clientSecret: paymentIntent.client_secret,
-      message: "PaymentIntent created. Awaiting payment.",
+    res.status(200).json({
+      sessionId: session.id,
+      message: "Checkout session created.",
     });
   } catch (err) {
-    console.error("Unexpected Error:", err.message);
-    return res.status(500).json({
-      error: "Unexpected server error",
+    console.error("Error creating checkout session:", err.message);
+    res.status(500).json({
+      error: "Failed to create checkout session",
       details: err.message,
     });
   }
