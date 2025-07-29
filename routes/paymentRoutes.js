@@ -80,8 +80,8 @@ router.post("/pay-lawyer", async (req, res) => {
           destination: lawyerStripeAccountId,
         },
       },
-      success_url: `${process.env.FRONTEND_URL}/success`,
-      cancel_url: `${process.env.FRONTEND_URL}/cancel`,
+      success_url: "https://example.com/success",
+      cancel_url: "https://example.com/cancel",
     });
 
     const paymentData = {
