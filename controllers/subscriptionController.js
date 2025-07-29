@@ -67,7 +67,7 @@ const createStripeSubscriptionAndSave = async (req, res) => {
       }
     }
 
-    // Step 5: إنشاء الاشتراك
+    // Step 5: إنشاء الاشتراك مع التوسعات والطباعة
     let subscription;
     try {
       subscription = await stripe.subscriptions.create({
@@ -78,8 +78,11 @@ const createStripeSubscriptionAndSave = async (req, res) => {
           payment_method_types: ["card"],
           save_default_payment_method: "on_subscription",
         },
-        expand: ["latest_invoice.payment_intent"],
+        expand: ["latest_invoice", "latest_invoice.payment_intent"],
       });
+
+      console.log("Subscription creation response:");
+      console.log(JSON.stringify(subscription, null, 2));
     } catch (subscriptionError) {
       console.error(
         "❌ Stripe Subscription Creation Failed:",
@@ -91,10 +94,18 @@ const createStripeSubscriptionAndSave = async (req, res) => {
       });
     }
 
-    const paymentIntent = subscription.latest_invoice.payment_intent;
+    // Step 6: استخراج paymentIntent و clientSecret مع فحص وجودهم
+    const paymentIntent = subscription.latest_invoice?.payment_intent;
+    if (!subscription.latest_invoice) {
+      console.warn("⚠️ Warning: subscription.latest_invoice is undefined");
+    }
+    if (!paymentIntent) {
+      console.warn("⚠️ Warning: payment_intent is undefined in latest_invoice");
+    }
+
     const clientSecret = paymentIntent?.client_secret || null;
 
-    // Step 6: حفظ بيانات الاشتراك في Firestore
+    // Step 7: حفظ بيانات الاشتراك في Firestore
     const now = new Date();
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + 1);
@@ -124,6 +135,7 @@ const createStripeSubscriptionAndSave = async (req, res) => {
       });
     }
 
+    // Step 8: الرد النهائي
     return res.status(201).json({
       subscriptionId: subscription.id,
       clientSecret,
