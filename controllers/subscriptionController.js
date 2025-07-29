@@ -109,7 +109,7 @@ const createStripeSubscriptionAndSave = async (req, res) => {
     });
 
     try {
-      await firestoreService.saveSubscription(subscriptionData.toFirestore());
+      await firestoreService.saveSubscription(subscriptionData.toPlainObject());
 
       await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
         subscriptionType,
