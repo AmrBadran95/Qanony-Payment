@@ -4,6 +4,7 @@ async function createConnectedAccount(email) {
   return await stripe.accounts.create({
     type: "express",
     email,
+    country: "EG",
     business_type: "individual",
     capabilities: {
       card_payments: { requested: true },

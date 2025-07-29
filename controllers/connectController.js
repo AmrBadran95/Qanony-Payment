@@ -10,6 +10,7 @@ const createConnectAccount = async (req, res) => {
 
   try {
     const account = await createConnectedAccount(email);
+
     const accountLink = await createAccountLink(account.id);
 
     await updateLawyerStripeAccount(lawyerId, {
