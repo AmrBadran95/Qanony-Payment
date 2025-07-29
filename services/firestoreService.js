@@ -7,13 +7,18 @@ const saveSubscription = async (subscription, customId = null) => {
       subscription.subscriptionStatus || "active";
     subscription.subscriptionType = subscription.subscriptionType || "monthly";
 
+    let docRef;
+
     if (customId) {
-      await db.collection("subscriptions").doc(customId).set(subscription);
+      docRef = db.collection("subscriptions").doc(customId);
+      await docRef.set(subscription);
     } else {
-      await db.collection("subscriptions").add(subscription);
+      docRef = await db.collection("subscriptions").add(subscription);
     }
 
     console.log("Subscription saved to Firestore");
+
+    return docRef.id;
   } catch (error) {
     console.error("Failed to save subscription:", error);
     throw error;

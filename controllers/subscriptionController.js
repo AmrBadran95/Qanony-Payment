@@ -78,7 +78,10 @@ const createLawyerSubscription = async (req, res) => {
       createdAt: now,
     });
 
-    await firestoreService.saveSubscription(subscriptionData.toPlainObject());
+    const subscriptionId = await firestoreService.saveSubscription(
+      subscriptionData.toPlainObject()
+    );
+
     await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
       subscriptionType,
       subscriptionStart: now,
@@ -86,6 +89,7 @@ const createLawyerSubscription = async (req, res) => {
     });
 
     return res.status(201).json({
+      subscriptionId,
       clientSecret: paymentIntent.client_secret,
       message: "PaymentIntent created. Awaiting payment.",
     });
