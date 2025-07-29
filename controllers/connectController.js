@@ -10,7 +10,6 @@ const createConnectAccount = async (req, res) => {
 
   try {
     const account = await createConnectedAccount(email);
-
     const accountLink = await createAccountLink(account.id);
 
     await updateLawyerStripeAccount(lawyerId, {
@@ -24,7 +23,12 @@ const createConnectAccount = async (req, res) => {
     });
   } catch (err) {
     console.error("Stripe Connect Error:", err);
-    res.status(500).json({ error: "Stripe Connect creation failed." });
+
+    res.status(500).json({
+      error: "Stripe Connect creation failed.",
+      message: err.message,
+      details: err?.raw || err,
+    });
   }
 };
 
