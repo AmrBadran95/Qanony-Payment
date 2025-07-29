@@ -6,7 +6,7 @@ const createStripeSubscriptionAndSave = async (req, res) => {
   try {
     const { lawyerId, priceId, subscriptionType } = req.body;
 
-    // ✅ Step 1: التحقق من البيانات المطلوبة
+    // Step 1: التحقق من المدخلات
     if (!lawyerId || !priceId || !subscriptionType) {
       return res.status(400).json({
         error:
@@ -14,23 +14,35 @@ const createStripeSubscriptionAndSave = async (req, res) => {
       });
     }
 
-    // ✅ Step 2: جلب المحامي من Firestore
+    // Step 2: جلب بيانات المحامي من Firestore
     const lawyerDoc = await firestoreService.getLawyerById(lawyerId);
     if (!lawyerDoc.exists) {
       return res.status(404).json({ error: "Lawyer not found in Firestore" });
     }
 
     const lawyerData = lawyerDoc.data();
-
-    // ✅ Step 3: التحقق من وجود الإيميل
     if (!lawyerData.email) {
       return res
         .status(400)
         .json({ error: "Lawyer is missing an email in Firestore" });
     }
 
-    // ✅ Step 4: التحقق من وجود أو إنشاء Stripe Customer
-    let customerId = lawyerData.stripeCustomerId;
+    // Step 3: التحقق من صلاحية stripeCustomerId
+    let customerId = null;
+
+    if (lawyerData.stripeCustomerId) {
+      try {
+        await stripe.customers.retrieve(lawyerData.stripeCustomerId);
+        customerId = lawyerData.stripeCustomerId;
+      } catch (err) {
+        console.warn("⚠️ Invalid or deleted Stripe customer, creating new one");
+        await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
+          stripeCustomerId: null,
+        });
+      }
+    }
+
+    // Step 4: إنشاء Stripe Customer لو مش موجود
     if (!customerId) {
       try {
         const customer = await stripe.customers.create({
@@ -44,7 +56,10 @@ const createStripeSubscriptionAndSave = async (req, res) => {
           stripeCustomerId: customerId,
         });
       } catch (customerError) {
-        console.error("❌ Stripe Customer Creation Failed:", customerError);
+        console.error(
+          "❌ Stripe Customer Creation Failed:",
+          customerError.message
+        );
         return res.status(500).json({
           error: "Failed to create Stripe customer",
           details: customerError.message,
@@ -52,7 +67,7 @@ const createStripeSubscriptionAndSave = async (req, res) => {
       }
     }
 
-    // ✅ Step 5: إنشاء الاشتراك في Stripe
+    // Step 5: إنشاء الاشتراك
     let subscription;
     try {
       subscription = await stripe.subscriptions.create({
@@ -68,7 +83,7 @@ const createStripeSubscriptionAndSave = async (req, res) => {
     } catch (subscriptionError) {
       console.error(
         "❌ Stripe Subscription Creation Failed:",
-        subscriptionError
+        subscriptionError.message
       );
       return res.status(500).json({
         error: "Failed to create Stripe subscription",
@@ -79,7 +94,7 @@ const createStripeSubscriptionAndSave = async (req, res) => {
     const paymentIntent = subscription.latest_invoice.payment_intent;
     const clientSecret = paymentIntent?.client_secret || null;
 
-    // ✅ Step 6: حفظ بيانات الاشتراك في Firestore
+    // Step 6: حفظ بيانات الاشتراك في Firestore
     const now = new Date();
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + 1);
@@ -102,7 +117,7 @@ const createStripeSubscriptionAndSave = async (req, res) => {
         subscriptionEndDate: endDate,
       });
     } catch (firestoreError) {
-      console.error("❌ Firestore Save Failed:", firestoreError);
+      console.error("❌ Firestore Save Failed:", firestoreError.message);
       return res.status(500).json({
         error: "Failed to save subscription to Firestore",
         details: firestoreError.message,
@@ -115,7 +130,7 @@ const createStripeSubscriptionAndSave = async (req, res) => {
       message: "✅ Subscription created successfully. Awaiting payment.",
     });
   } catch (err) {
-    console.error("🔥 Unexpected Error:", err);
+    console.error("🔥 Unexpected Error:", err.message);
     return res.status(500).json({
       error: "Unexpected server error",
       details: err.message,
