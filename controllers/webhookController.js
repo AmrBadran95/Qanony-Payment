@@ -17,7 +17,7 @@ exports.handleWebhook = async (req, res) => {
   try {
     switch (event.type) {
       case "checkout.session.completed":
-        await webhookService.handleCheckoutCompleted(event.data.object);
+        await webhookService.routeCheckoutCompleted(event.data.object);
         break;
 
       default:
