@@ -65,12 +65,7 @@ const updateLawyerStripeAccount = async (lawyerId, data) => {
 const getLawyerById = async (lawyerId) => {
   try {
     const doc = await db.collection("lawyers").doc(lawyerId).get();
-
-    if (!doc.exists) {
-      throw new Error(`Lawyer with ID (${lawyerId}) not found.`);
-    }
-
-    return doc.data();
+    return doc;
   } catch (error) {
     console.error("Error getting lawyer by ID:", error);
     throw error;
