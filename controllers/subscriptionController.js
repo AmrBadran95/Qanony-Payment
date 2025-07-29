@@ -73,7 +73,7 @@ const createLawyerSubscription = async (req, res) => {
       subscriptionType,
       subscriptionStart: now,
       subscriptionEnd: endDate,
-      moneyPaid: 50000,
+      moneyPaid: 5000,
       subscriptionStatus: "active",
       createdAt: now,
     });
