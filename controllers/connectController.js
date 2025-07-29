@@ -3,7 +3,7 @@ const {
   createAccountLink,
 } = require("../services/connectService");
 
-const { updateLawyerStripeAccount } = require("../utils/firestoreUtils");
+const { updateLawyerStripeAccount } = require("../services/firestoreService");
 
 const createConnectAccount = async (req, res) => {
   const { lawyerId, email } = req.body;

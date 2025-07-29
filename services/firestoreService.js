@@ -46,9 +46,23 @@ const updateLawyerSubscriptionInfo = async (
     console.error("Failed to update lawyer subscription info:", error);
     throw error;
   }
+  const updateLawyerStripeAccount = async (lawyerId, data) => {
+    try {
+      data.stripeUpdatedAt = new Date();
+
+      const lawyerRef = db.collection("lawyers").doc(lawyerId);
+      await lawyerRef.set(data, { merge: true });
+
+      console.log(`Lawyer (${lawyerId}) Stripe account updated.`);
+    } catch (error) {
+      console.error("Failed to update lawyer Stripe account:", error);
+      throw error;
+    }
+  };
 };
 
 module.exports = {
   saveSubscription,
   updateLawyerSubscriptionInfo,
+  updateLawyerStripeAccount,
 };
