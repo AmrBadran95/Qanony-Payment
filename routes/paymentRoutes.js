@@ -28,7 +28,13 @@ async function getOrCreateCustomer(userId, email) {
 
 router.post("/subscribe", async (req, res) => {
   try {
-    const { userId, email, priceId = "price_1RpgrKBCYVFzcUuX4j1dOcaB", role, subscriptionType = "monthly" } = req.body;
+    const {
+      userId,
+      email,
+      priceId = "price_1RpgrKBCYVFzcUuX4j1dOcaB",
+      role,
+      subscriptionType = "monthly",
+    } = req.body;
 
     if (!userId || !email || !role) {
       return res.status(400).json({
@@ -55,9 +61,14 @@ router.post("/subscribe", async (req, res) => {
       createdAt: new Date(),
     });
 
+    const clientSecret =
+      subscription.latest_invoice &&
+      subscription.latest_invoice.payment_intent &&
+      subscription.latest_invoice.payment_intent.client_secret;
+
     res.status(200).json({
       subscriptionId: subscription.id,
-      clientSecret: subscription.latest_invoice.payment_intent.client_secret,
+      clientSecret: clientSecret || null,
     });
   } catch (err) {
     console.error("Stripe Subscription Error:", err);
