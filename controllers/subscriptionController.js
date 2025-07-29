@@ -16,16 +16,29 @@ const createStripeSubscriptionAndSave = async (req, res) => {
     }
 
     const lawyerData = lawyerDoc.data();
-    const customerId = lawyerData.stripeCustomerId;
+    let customerId = lawyerData.stripeCustomerId;
 
     if (!customerId) {
-      return res.status(400).json({ error: "Lawyer has no Stripe customerId" });
+      const customer = await stripe.customers.create({
+        email: lawyerData.email || undefined,
+        metadata: { lawyerId },
+      });
+
+      customerId = customer.id;
+
+      await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
+        stripeCustomerId: customerId,
+      });
     }
 
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
       items: [{ price: priceId }],
       payment_behavior: "default_incomplete",
+      payment_settings: {
+        payment_method_types: ["card"],
+        save_default_payment_method: "on_subscription",
+      },
       expand: ["latest_invoice.payment_intent"],
     });
 

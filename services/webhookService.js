@@ -1,45 +1,66 @@
 const db = require("../config/firebase");
-const LawyerPaymentModel = require("../models/lawyerPaymentModel");
+const SubscriptionModel = require("../models/subscriptionModel");
 
-exports.handleCheckoutCompleted = async (session) => {
-  const sessionId = session.id;
-  const paymentStatus = session.payment_status;
-  const customerEmail = session.customer_email;
+exports.routeInvoicePaid = async (invoice) => {
+  const subscriptionId = invoice.subscription;
+  const customerId = invoice.customer;
+  const paymentIntentId = invoice.payment_intent;
+  const amountPaid = invoice.amount_paid;
 
-  const paymentsRef = db.collection("payments");
-  const snapshot = await paymentsRef
-    .where("stripeSessionId", "==", sessionId)
+  const lawyersSnapshot = await db
+    .collection("lawyers")
+    .where("stripeCustomerId", "==", customerId)
     .limit(1)
     .get();
 
-  if (snapshot.empty) {
-    console.warn("No payment found for session:", sessionId);
+  if (lawyersSnapshot.empty) {
+    console.warn("No lawyer found with this customerId:", customerId);
     return;
   }
 
-  const paymentDoc = snapshot.docs[0];
-  const paymentData = paymentDoc.data();
+  const lawyerDoc = lawyersSnapshot.docs[0];
+  const lawyerId = lawyerDoc.id;
 
-  const updateData = {
-    status: paymentStatus,
-    customerEmail: customerEmail || null,
-    updatedAt: new Date(),
-  };
+  const paymentsSnapshot = await db
+    .collection("payments")
+    .where("subscriptionId", "==", subscriptionId)
+    .limit(1)
+    .get();
 
-  await paymentDoc.ref.update(updateData);
+  if (paymentsSnapshot.empty) {
+    console.warn("No payment record found for subscription:", subscriptionId);
+    return;
+  }
 
-  const payout = new LawyerPaymentModel({
-    userId: paymentData.userId,
-    lawyerId: paymentData.lawyerId,
-    amount: paymentData.amount / 100,
-    fee: paymentData.fee / 100,
-    transferredAmount: paymentData.amountTransferred / 100,
-    stripeSessionId: sessionId,
-    paymentStatus: paymentStatus,
-    createdAt: new Date(),
+  const paymentDoc = paymentsSnapshot.docs[0];
+
+  const now = new Date();
+  const endDate = new Date();
+  endDate.setMonth(endDate.getMonth() + 1);
+
+  await paymentDoc.ref.update({
+    status: "paid",
+    paymentIntentId,
+    moneyPaid: amountPaid / 100,
+    updatedAt: now,
   });
 
-  await db.collection("lawyer_payouts").add(payout.toFirestore());
+  const subscriptionData = new SubscriptionModel({
+    lawyerId,
+    subscriptionType: paymentDoc.data().subscriptionType,
+    subscriptionStartDate: now,
+    subscriptionEndDate: endDate,
+    moneyPaid: amountPaid / 100,
+    createdAt: now,
+  });
 
-  console.log("Lawyer payout recorded for session:", sessionId);
+  await db.collection("subscriptions").add(subscriptionData.toFirestore());
+
+  await lawyerDoc.ref.update({
+    subscriptionType: paymentDoc.data().subscriptionType,
+    subscriptionStartDate: now,
+    subscriptionEndDate: endDate,
+  });
+
+  console.log("Subscription marked as paid and lawyer updated.");
 };

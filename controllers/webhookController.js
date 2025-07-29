@@ -20,6 +20,10 @@ exports.handleWebhook = async (req, res) => {
         await webhookService.routeCheckoutCompleted(event.data.object);
         break;
 
+      case "invoice.paid":
+        await webhookService.routeInvoicePaid(event.data.object);
+        break;
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }

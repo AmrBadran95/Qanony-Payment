@@ -5,22 +5,20 @@ require("./config/firebase");
 
 const app = express();
 
-const paymentRoutes = require("./routes/paymentRoutes");
-const subscriptionControllerRoutes = require("./routes/subscriptionRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
-const stripeCustomerRoutes = require("./routes/stripeCustomerRoutes");
-const stripeConnectRoutes = require("./routes/connectRoutes");
-
 app.use("/api/webhook", express.raw({ type: "application/json" }));
+app.use("/api/webhook", webhookRoutes);
 
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/payments", paymentRoutes);
+const subscriptionControllerRoutes = require("./routes/subscriptionRoutes");
+const stripeCustomerRoutes = require("./routes/stripeCustomerRoutes");
+const stripeConnectRoutes = require("./routes/connectRoutes");
+
 app.use("/api/subscriptions", subscriptionControllerRoutes);
 app.use("/api/stripe-customers", stripeCustomerRoutes);
 app.use("/api/stripe-connect", stripeConnectRoutes);
-app.use("/api/webhook", webhookRoutes);
 
 app.get("/", (req, res) => {
   res.send("Qanony Stripe + Firebase server is running!");
