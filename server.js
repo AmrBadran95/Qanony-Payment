@@ -9,7 +9,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const subscriptionControllerRoutes = require("./routes/subscriptionRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
 const stripeCustomerRoutes = require("./routes/stripeCustomerRoutes");
-const stripeConnectRoutes = require("./routes/stripeConnectRoutes");
+const stripeConnectRoutes = require("./routes/connectRoutes");
 
 app.use("/api/webhook", express.raw({ type: "application/json" }));
 
