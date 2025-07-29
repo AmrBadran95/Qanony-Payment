@@ -2,19 +2,17 @@ const stripe = require("../config/stripe");
 const SubscriptionModel = require("../models/subscriptionModel");
 const firestoreService = require("../services/firestoreService");
 
-const createStripeSubscriptionAndSave = async (req, res) => {
+const createLawyerSubscription = async (req, res) => {
   try {
-    const { lawyerId, priceId, subscriptionType } = req.body;
+    const { lawyerId, amount, subscriptionType } = req.body;
 
-    // Step 1: التحقق من المدخلات
-    if (!lawyerId || !priceId || !subscriptionType) {
+    if (!lawyerId || !amount || !subscriptionType) {
       return res.status(400).json({
-        error:
-          "Missing required fields: lawyerId, priceId, or subscriptionType",
+        error: "Missing required fields: lawyerId, amount, or subscriptionType",
       });
     }
 
-    // Step 2: جلب بيانات المحامي من Firestore
+    // Get lawyer from Firestore
     const lawyerDoc = await firestoreService.getLawyerById(lawyerId);
     if (!lawyerDoc.exists) {
       return res.status(404).json({ error: "Lawyer not found in Firestore" });
@@ -27,119 +25,72 @@ const createStripeSubscriptionAndSave = async (req, res) => {
         .json({ error: "Lawyer is missing an email in Firestore" });
     }
 
-    // Step 3: التحقق من صلاحية stripeCustomerId
-    let customerId = null;
-
-    if (lawyerData.stripeCustomerId) {
+    // Create or reuse Stripe customer
+    let customerId = lawyerData.stripeCustomerId;
+    if (customerId) {
       try {
-        await stripe.customers.retrieve(lawyerData.stripeCustomerId);
-        customerId = lawyerData.stripeCustomerId;
-      } catch (err) {
-        console.warn("⚠️ Invalid or deleted Stripe customer, creating new one");
+        await stripe.customers.retrieve(customerId);
+      } catch {
+        console.warn("⚠️ Invalid Stripe customer, creating new one...");
+        customerId = null;
         await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
           stripeCustomerId: null,
         });
       }
     }
 
-    // Step 4: إنشاء Stripe Customer لو مش موجود
     if (!customerId) {
-      try {
-        const customer = await stripe.customers.create({
-          email: lawyerData.email,
-          metadata: { lawyerId },
-        });
-
-        customerId = customer.id;
-
-        await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
-          stripeCustomerId: customerId,
-        });
-      } catch (customerError) {
-        console.error(
-          "❌ Stripe Customer Creation Failed:",
-          customerError.message
-        );
-        return res.status(500).json({
-          error: "Failed to create Stripe customer",
-          details: customerError.message,
-        });
-      }
-    }
-
-    // Step 5: إنشاء الاشتراك مع التوسعات والطباعة
-    let subscription;
-    try {
-      subscription = await stripe.subscriptions.create({
-        customer: customerId,
-        items: [{ price: priceId }],
-        payment_behavior: "default_incomplete",
-        payment_settings: {
-          payment_method_types: ["card"],
-          save_default_payment_method: "on_subscription",
-        },
-        expand: ["latest_invoice", "latest_invoice.payment_intent"],
+      const customer = await stripe.customers.create({
+        email: lawyerData.email,
+        metadata: { lawyerId },
       });
+      customerId = customer.id;
 
-      console.log("Subscription creation response:");
-      console.log(JSON.stringify(subscription, null, 2));
-    } catch (subscriptionError) {
-      console.error(
-        "❌ Stripe Subscription Creation Failed:",
-        subscriptionError.message
-      );
-      return res.status(500).json({
-        error: "Failed to create Stripe subscription",
-        details: subscriptionError.message,
+      await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
+        stripeCustomerId: customerId,
       });
     }
 
-    // Step 6: استخراج paymentIntent و clientSecret مع فحص وجودهم
-    const paymentIntent = subscription.latest_invoice?.payment_intent;
-    if (!subscription.latest_invoice) {
-      console.warn("⚠️ Warning: subscription.latest_invoice is undefined");
-    }
-    if (!paymentIntent) {
-      console.warn("⚠️ Warning: payment_intent is undefined in latest_invoice");
-    }
+    // Create one-time payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: parseInt(amount), // in cents
+      currency: "egp",
+      customer: customerId,
+      description: `Qanony ${subscriptionType} subscription`,
+      metadata: {
+        lawyerId,
+        subscriptionType,
+      },
+    });
 
-    const clientSecret = paymentIntent?.client_secret || null;
-
-    // Step 7: حفظ بيانات الاشتراك في Firestore
     const now = new Date();
     const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 1);
+    if (subscriptionType === "monthly") {
+      endDate.setMonth(endDate.getMonth() + 1);
+    } else if (subscriptionType === "yearly") {
+      endDate.setFullYear(endDate.getFullYear() + 1);
+    }
 
     const subscriptionData = new SubscriptionModel({
       lawyerId,
       subscriptionType,
-      subscriptionStartDate: now,
-      subscriptionEndDate: endDate,
-      moneyPaid: 0,
+      subscriptionStart: now,
+      subscriptionEnd: endDate,
+      moneyPaid: 0, // will update later via webhook
+      subscriptionStatus: "pending",
       createdAt: now,
     });
 
-    try {
-      await firestoreService.saveSubscription(subscriptionData.toPlainObject());
+    await firestoreService.saveSubscription(subscriptionData.toPlainObject());
+    await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
+      subscriptionType,
+      subscriptionStartDate: now,
+      subscriptionEndDate: endDate,
+    });
 
-      await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
-        subscriptionType,
-        subscriptionStartDate: now,
-        subscriptionEndDate: endDate,
-      });
-    } catch (firestoreError) {
-      console.error("❌ Firestore Save Failed:", firestoreError.message);
-      return res.status(500).json({
-        error: "Failed to save subscription to Firestore",
-        details: firestoreError.message,
-      });
-    }
-
-    // Step 8: الرد النهائي
     return res.status(201).json({
-      subscriptionId: subscription.id,
-      clientSecret,
-      message: "✅ Subscription created successfully. Awaiting payment.",
+      clientSecret: paymentIntent.client_secret,
+      message: "✅ PaymentIntent created. Awaiting payment.",
     });
   } catch (err) {
     console.error("🔥 Unexpected Error:", err.message);
@@ -151,5 +102,5 @@ const createStripeSubscriptionAndSave = async (req, res) => {
 };
 
 module.exports = {
-  createStripeSubscriptionAndSave,
+  createLawyerSubscription,
 };

@@ -1,52 +1,43 @@
 class SubscriptionModel {
   constructor({
     lawyerId,
-    subscriptionType = "monthly",
-    subscriptionStartDate = new Date(),
-    subscriptionEndDate = null,
+    subscriptionType = "one_time",
+    subscriptionStart = new Date(),
+    subscriptionEnd = null,
     moneyPaid = 0,
-    subscriptionStatus = "active",
+    subscriptionStatus = "paid",
+    currency = "egp",
     createdAt = new Date(),
   }) {
     this.lawyerId = lawyerId;
     this.subscriptionType = subscriptionType;
-    this.subscriptionStartDate = new Date(subscriptionStartDate);
-    this.subscriptionEndDate = subscriptionEndDate
-      ? new Date(subscriptionEndDate)
-      : this.#calculateEndDate(subscriptionType, subscriptionStartDate);
+    this.subscriptionStart = new Date(subscriptionStart);
+    this.subscriptionEnd = subscriptionEnd;
     this.moneyPaid = moneyPaid;
     this.subscriptionStatus = subscriptionStatus;
+    this.currency = currency;
     this.createdAt = new Date(createdAt);
-  }
-
-  #calculateEndDate(type, startDate) {
-    const date = new Date(startDate || Date.now());
-    if (type === "monthly") {
-      date.setMonth(date.getMonth() + 1);
-    } else if (type === "yearly") {
-      date.setFullYear(date.getFullYear() + 1);
-    }
-    return date;
   }
 
   toPlainObject() {
     return {
       lawyerId: this.lawyerId,
       subscriptionType: this.subscriptionType,
-      subscriptionStartDate: this.subscriptionStartDate,
-      subscriptionEndDate: this.subscriptionEndDate,
+      subscriptionStart: this.subscriptionStart,
+      subscriptionEnd: this.subscriptionEnd,
       moneyPaid: this.moneyPaid,
       subscriptionStatus: this.subscriptionStatus,
+      currency: this.currency,
       createdAt: this.createdAt,
     };
   }
 
-  static fromStripeEvent(event, lawyerId) {
+  static fromPaymentIntent(intent, lawyerId) {
     return new SubscriptionModel({
       lawyerId,
-      moneyPaid: event.amount_received / 100,
-      subscriptionType: "monthly",
-      subscriptionStartDate: new Date(event.created * 1000),
+      moneyPaid: intent.amount / 100,
+      subscriptionStart: new Date(intent.created * 1000),
+      currency: intent.currency,
     });
   }
 }
