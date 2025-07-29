@@ -12,7 +12,6 @@ const createLawyerSubscription = async (req, res) => {
       });
     }
 
-    // Get lawyer from Firestore
     const lawyerDoc = await firestoreService.getLawyerById(lawyerId);
     if (!lawyerDoc.exists) {
       return res.status(404).json({ error: "Lawyer not found in Firestore" });
@@ -25,13 +24,12 @@ const createLawyerSubscription = async (req, res) => {
         .json({ error: "Lawyer is missing an email in Firestore" });
     }
 
-    // Create or reuse Stripe customer
     let customerId = lawyerData.stripeCustomerId;
     if (customerId) {
       try {
         await stripe.customers.retrieve(customerId);
       } catch {
-        console.warn("⚠️ Invalid Stripe customer, creating new one...");
+        console.warn("Invalid Stripe customer, creating new one...");
         customerId = null;
         await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
           stripeCustomerId: null,
@@ -51,9 +49,8 @@ const createLawyerSubscription = async (req, res) => {
       });
     }
 
-    // Create one-time payment intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: parseInt(amount), // in cents
+      amount: parseInt(amount),
       currency: "egp",
       customer: customerId,
       description: `Qanony ${subscriptionType} subscription`,
@@ -76,8 +73,8 @@ const createLawyerSubscription = async (req, res) => {
       subscriptionType,
       subscriptionStart: now,
       subscriptionEnd: endDate,
-      moneyPaid: 0, // will update later via webhook
-      subscriptionStatus: "pending",
+      moneyPaid: 50000,
+      subscriptionStatus: "active",
       createdAt: now,
     });
 
@@ -90,10 +87,10 @@ const createLawyerSubscription = async (req, res) => {
 
     return res.status(201).json({
       clientSecret: paymentIntent.client_secret,
-      message: "✅ PaymentIntent created. Awaiting payment.",
+      message: "PaymentIntent created. Awaiting payment.",
     });
   } catch (err) {
-    console.error("🔥 Unexpected Error:", err.message);
+    console.error("Unexpected Error:", err.message);
     return res.status(500).json({
       error: "Unexpected server error",
       details: err.message,

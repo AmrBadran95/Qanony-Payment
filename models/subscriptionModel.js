@@ -4,8 +4,8 @@ class SubscriptionModel {
     subscriptionType = "one_time",
     subscriptionStart = new Date(),
     subscriptionEnd = null,
-    moneyPaid = 0,
-    subscriptionStatus = "paid",
+    moneyPaid = 500000,
+    subscriptionStatus = "active",
     currency = "egp",
     createdAt = new Date(),
   }) {
