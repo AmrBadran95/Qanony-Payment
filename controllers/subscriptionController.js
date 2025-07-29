@@ -84,8 +84,8 @@ const createLawyerSubscription = async (req, res) => {
     await firestoreService.saveSubscription(subscriptionData.toPlainObject());
     await firestoreService.updateLawyerSubscriptionInfo(lawyerId, {
       subscriptionType,
-      subscriptionStartDate: now,
-      subscriptionEndDate: endDate,
+      subscriptionStart: now,
+      subscriptionEnd: endDate,
     });
 
     return res.status(201).json({
