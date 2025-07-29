@@ -7,7 +7,6 @@ async function createConnectedAccount(email) {
     country: "EG",
     business_type: "individual",
     capabilities: {
-      card_payments: { requested: true },
       transfers: { requested: true },
     },
   });
