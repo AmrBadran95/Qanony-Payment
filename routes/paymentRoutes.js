@@ -3,106 +3,64 @@ const router = express.Router();
 const stripe = require("../config/stripe");
 const firestore = require("../config/firebase");
 
+async function getOrCreateCustomer(userId, email) {
+  const userRef = firestore.collection("users").doc(userId);
+  const userDoc = await userRef.get();
+
+  if (userDoc.exists && userDoc.data().stripeCustomerId) {
+    return userDoc.data().stripeCustomerId;
+  }
+
+  const customer = await stripe.customers.create({
+    email,
+    metadata: { userId },
+  });
+
+  await userRef.set(
+    {
+      stripeCustomerId: customer.id,
+    },
+    { merge: true }
+  );
+
+  return customer.id;
+}
+
 router.post("/subscribe", async (req, res) => {
   try {
-    const { amount, userId, role, subscriptionType = "monthly" } = req.body;
+    const { userId, email, priceId = "price_1RpgrKBCYVFzcUuX4j1dOcaB", role, subscriptionType = "monthly" } = req.body;
 
-    if (!amount || !userId || !role) {
+    if (!userId || !email || !role) {
       return res.status(400).json({
-        error: "amount, userId, and role are required",
+        error: "userId, email, and role are required",
       });
     }
 
-    const amountInPiasters = amount * 100;
+    const customerId = await getOrCreateCustomer(userId, email);
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountInPiasters,
-      currency: "egp",
-      automatic_payment_methods: { enabled: true },
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId }],
+      payment_behavior: "default_incomplete",
+      expand: ["latest_invoice.payment_intent"],
     });
 
-    const paymentData = {
+    await firestore.collection("payments").add({
       userId,
       role,
-      amount: amountInPiasters,
       paymentType: "subscription",
       subscriptionType,
-      status: "created",
-      paymentMethod: null,
-      transactionId: paymentIntent.id,
+      subscriptionId: subscription.id,
+      status: subscription.status,
       createdAt: new Date(),
-    };
-
-    await firestore.collection("payments").add(paymentData);
+    });
 
     res.status(200).json({
-      clientSecret: paymentIntent.client_secret,
+      subscriptionId: subscription.id,
+      clientSecret: subscription.latest_invoice.payment_intent.client_secret,
     });
   } catch (err) {
     console.error("Stripe Subscription Error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.post("/pay-lawyer", async (req, res) => {
-  try {
-    const { amount, userId, lawyerId, lawyerStripeAccountId } = req.body;
-
-    if (!amount || !userId || !lawyerId || !lawyerStripeAccountId) {
-      return res.status(400).json({
-        error:
-          "amount, userId, lawyerId, and lawyerStripeAccountId are required",
-      });
-    }
-
-    const amountInPiasters = amount * 100;
-    const platformFee = Math.floor(amountInPiasters * 0.2); // 20%
-    const amountTransferred = amountInPiasters - platformFee;
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "egp",
-            unit_amount: amountInPiasters,
-            product_data: {
-              name: "Lawyer Booking",
-            },
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      payment_intent_data: {
-        application_fee_amount: platformFee,
-        transfer_data: {
-          destination: lawyerStripeAccountId,
-        },
-      },
-      success_url: "https://example.com/success",
-      cancel_url: "https://example.com/cancel",
-    });
-
-    const paymentData = {
-      userId,
-      lawyerId,
-      amount: amountInPiasters,
-      fee: platformFee,
-      amountTransferred,
-      paymentType: "user_to_lawyer",
-      status: "pending",
-      stripeSessionId: session.id,
-      createdAt: new Date(),
-    };
-
-    await firestore.collection("payments").add(paymentData);
-
-    res.status(200).json({
-      sessionUrl: session.url,
-    });
-  } catch (err) {
-    console.error("Stripe Pay Lawyer Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
