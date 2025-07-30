@@ -29,19 +29,25 @@ exports.createLawyerSubscription = async (req, res) => {
       metadata: { lawyerId, subscriptionType },
     });
 
+    const paymentIntent = subscription.latest_invoice?.payment_intent;
+    if (!paymentIntent) {
+      console.error("Missing payment intent in subscription:", subscription);
+      return res.status(500).json({ error: "Payment intent not available" });
+    }
+
     await firestore.collection("payments").add({
       lawyerId,
       stripeCustomerId: customer.id,
       subscriptionId: subscription.id,
       subscriptionType,
-      paymentIntentId: subscription.latest_invoice.payment_intent.id,
+      paymentIntentId: paymentIntent.id,
       moneyPaid: null,
       status: "pending",
       createdAt: new Date(),
     });
 
     res.json({
-      clientSecret: subscription.latest_invoice.payment_intent.client_secret,
+      clientSecret: paymentIntent.client_secret,
       subscriptionId: subscription.id,
     });
   } catch (error) {
