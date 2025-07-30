@@ -43,10 +43,13 @@ exports.createLawyerSubscription = async (req, res) => {
 
     let paymentIntent = subscription.latest_invoice?.payment_intent;
 
-    if (!paymentIntent) {
-      const invoiceId = subscription.latest_invoice?.id;
-      console.warn("PaymentIntent missing. Trying manual fetch...");
+    if (!paymentIntent || !paymentIntent.client_secret) {
+      console.warn(
+        "PaymentIntent missing or no client_secret. Waiting 2 seconds..."
+      );
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
+      const invoiceId = subscription.latest_invoice?.id;
       if (invoiceId) {
         const invoice = await stripe.invoices.retrieve(invoiceId, {
           expand: ["payment_intent"],
