@@ -26,41 +26,37 @@ exports.createLawyerSubscription = async (req, res) => {
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{ price: priceId }],
-      default_payment_method: paymentMethodId,
       payment_behavior: "default_incomplete",
+      payment_settings: {
+        save_default_payment_method: "on_subscription",
+      },
       expand: ["latest_invoice.payment_intent"],
       metadata: { lawyerId, subscriptionType },
     });
 
     console.log("Subscription created. ID:", subscription.id);
-    console.log("Subscription status:", subscription.status);
 
     let paymentIntent = subscription.latest_invoice?.payment_intent;
 
     if (!paymentIntent) {
       const invoiceId = subscription.latest_invoice?.id;
-      console.warn(
-        "PaymentIntent missing in expanded invoice. Trying manual fetch..."
-      );
+      console.warn("PaymentIntent missing. Trying manual fetch...");
 
       if (invoiceId) {
         const invoice = await stripe.invoices.retrieve(invoiceId, {
           expand: ["payment_intent"],
         });
 
-        if (invoice && invoice.payment_intent) {
+        if (invoice?.payment_intent) {
           paymentIntent = invoice.payment_intent;
           console.log("Fetched PaymentIntent manually:", paymentIntent.id);
         }
       }
     }
 
-    if (!paymentIntent) {
-      console.error("Final fallback: PaymentIntent still null.");
-      console.dir(subscription, { depth: null });
-      return res
-        .status(500)
-        .json({ error: "Payment intent not available in subscription" });
+    if (!paymentIntent || !paymentIntent.client_secret) {
+      console.error("PaymentIntent is still null or has no client secret.");
+      return res.status(500).json({ error: "Payment intent not available" });
     }
 
     await firestore.collection("payments").add({
@@ -79,7 +75,7 @@ exports.createLawyerSubscription = async (req, res) => {
       subscriptionId: subscription.id,
     });
   } catch (error) {
-    console.error("Error creating subscription:", error.message);
+    console.error("Error creating subscription:", error);
     return res.status(500).json({ error: error.message });
   }
 };
