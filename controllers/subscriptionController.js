@@ -22,11 +22,11 @@ exports.createLawyerSubscription = async (req, res) => {
       });
       console.log("Created new customer:", customer.id);
     }
-
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{ price: priceId }],
       payment_behavior: "default_incomplete",
+      collection_method: "charge_automatically",
       payment_settings: {
         save_default_payment_method: "on_subscription",
       },
@@ -71,7 +71,7 @@ exports.createLawyerSubscription = async (req, res) => {
     });
 
     return res.json({
-      clientSecret: paymentIntent.client_secret,
+      clientSecret: subscription.latest_invoice.payment_intent.client_secret,
       subscriptionId: subscription.id,
     });
   } catch (error) {
