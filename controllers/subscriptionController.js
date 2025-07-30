@@ -1,91 +1,28 @@
-const stripe = require("../config/stripe");
-const firestore = require("../config/firebase");
-
-exports.createLawyerSubscription = async (req, res) => {
-  const { lawyerId, email, priceId, subscriptionType } = req.body;
-
+const createSubscription = async (req, res) => {
   try {
-    if (!lawyerId || !email || !priceId || !subscriptionType) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
+    const { lawyerId, priceId, subscriptionType } = req.body;
 
-    let customer;
-    const customers = await stripe.customers.list({ email, limit: 1 });
-
-    if (customers.data.length > 0) {
-      customer = customers.data[0];
-      console.log("Found existing customer:", customer.id);
-    } else {
-      customer = await stripe.customers.create({
-        email,
-        metadata: { lawyerId },
-      });
-      console.log("Created new customer:", customer.id);
-    }
-
-    await firestore.collection("lawyers").doc(lawyerId).update({
-      stripeCustomerId: customer.id,
-    });
+    const customer = await getOrCreateCustomer(lawyerId);
 
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{ price: priceId }],
       payment_behavior: "default_incomplete",
-      collection_method: "charge_automatically",
-      payment_settings: {
-        save_default_payment_method: "on_subscription",
-      },
       expand: ["latest_invoice.payment_intent"],
-      metadata: { lawyerId, subscriptionType },
     });
 
-    console.log("Subscription created. ID:", subscription.id);
+    const invoiceId = subscription.latest_invoice;
 
-    let paymentIntent = subscription.latest_invoice?.payment_intent;
-
-    let attempts = 0;
-    const invoiceId = subscription.latest_invoice?.id;
-    while ((!paymentIntent || !paymentIntent.client_secret) && attempts < 3) {
-      console.warn(
-        `PaymentIntent not ready, retrying in 2s... (attempt ${attempts + 1})`
-      );
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      if (invoiceId) {
-        const invoice = await stripe.invoices.retrieve(invoiceId, {
-          expand: ["payment_intent"],
-        });
-
-        if (invoice?.payment_intent) {
-          paymentIntent = invoice.payment_intent;
-          console.log("Fetched PaymentIntent manually:", paymentIntent.id);
-        }
-      }
-      attempts++;
-    }
-
-    if (!paymentIntent || !paymentIntent.client_secret) {
-      console.error("PaymentIntent is still null or has no client secret.");
-      return res.status(500).json({ error: "Payment intent not available" });
-    }
-
-    await firestore.collection("payments").add({
-      lawyerId,
-      stripeCustomerId: customer.id,
+    res.status(200).json({
+      success: true,
       subscriptionId: subscription.id,
-      subscriptionType,
-      paymentIntentId: paymentIntent.id,
-      moneyPaid: null,
+      invoiceId,
       status: "pending",
-      createdAt: new Date(),
     });
-
-    return res.json({
-      clientSecret: paymentIntent.client_secret,
-      subscriptionId: subscription.id,
-    });
-  } catch (error) {
-    console.error("Error creating subscription:", error);
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error("Subscription error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to create subscription" });
   }
 };
