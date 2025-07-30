@@ -5,11 +5,10 @@ require("./config/firebase");
 
 const app = express();
 
-const webhookRoutes = require("./routes/webhookRoutes");
 app.use(
   "/api/webhook",
   express.raw({ type: "application/json" }),
-  webhookRoutes
+  require("./routes/webhookRoutes")
 );
 
 app.use(cors());
