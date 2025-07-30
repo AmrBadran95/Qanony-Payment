@@ -47,6 +47,8 @@ exports.createLawyerSubscription = async (req, res) => {
       })
       .catch((err) => {
         console.error("Failed to create Stripe subscription:", err.message);
+        console.log("Full subscription object:");
+        console.log(JSON.stringify(subscription, null, 2));
         throw new Error("Stripe subscription creation failed");
       });
 
