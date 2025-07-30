@@ -16,10 +16,12 @@ app.use(express.json());
 const subscriptionControllerRoutes = require("./routes/subscriptionRoutes");
 const stripeCustomerRoutes = require("./routes/stripeCustomerRoutes");
 const stripeConnectRoutes = require("./routes/connectRoutes");
+const setupIntentRoutes = require("./routes/setupIntentRoutes");
 
 app.use("/api/subscriptions", subscriptionControllerRoutes);
 app.use("/api/stripe-customers", stripeCustomerRoutes);
 app.use("/api/stripe-connect", stripeConnectRoutes);
+app.use("/api/setup-intent", setupIntentRoutes);
 
 app.get("/", (req, res) => {
   res.send("Qanony Stripe + Firebase server is running!");

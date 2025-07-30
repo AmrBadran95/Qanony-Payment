@@ -50,8 +50,8 @@ exports.routeInvoicePaid = async (invoice) => {
     const subscriptionData = new SubscriptionModel({
       lawyerId,
       subscriptionType: paymentData.subscriptionType,
-      subscriptionStartDate: now,
-      subscriptionEndDate: endDate,
+      subscriptionStart: now,
+      subscriptionEnd: endDate,
       moneyPaid: amountPaid / 100,
       createdAt: now,
     });
@@ -60,8 +60,8 @@ exports.routeInvoicePaid = async (invoice) => {
 
     await lawyerDoc.ref.update({
       subscriptionType: paymentData.subscriptionType,
-      subscriptionStartDate: now,
-      subscriptionEndDate: endDate,
+      subscriptionStart: now,
+      subscriptionEnd: endDate,
     });
 
     console.log(`invoice.paid handled successfully for lawyer (${lawyerId})`);
