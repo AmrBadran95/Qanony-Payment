@@ -5,6 +5,8 @@ require("./config/firebase");
 
 const app = express();
 
+app.use("/api/webhook", express.raw({ type: "application/json" }));
+
 const webhookRoutes = require("./routes/webhookRoutes");
 app.use("/api/webhook", webhookRoutes);
 
