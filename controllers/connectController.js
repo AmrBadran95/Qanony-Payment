@@ -5,6 +5,8 @@ const {
 
 const { updateLawyerStripeAccount } = require("../services/firestoreService");
 
+const db = require("../config/firebase");
+
 const createConnectAccount = async (req, res) => {
   const { lawyerId, email } = req.body;
 
