@@ -5,7 +5,7 @@ const firestoreService = require("../services/firestoreService");
 const SubscriptionModel = require("../models/subscriptionModel");
 
 router.post(
-  "/webhook",
+  "/",
   express.raw({ type: "application/json" }),
   async (req, res) => {
     const sig = req.headers["stripe-signature"];
