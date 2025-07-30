@@ -23,3 +23,7 @@ const getPaymentIntentSecret = async (req, res) => {
     res.status(500).json({ ready: false, message: "Internal error" });
   }
 };
+
+module.exports = {
+  getPaymentIntentSecret,
+};
