@@ -42,7 +42,7 @@ exports.createLawyerSubscription = async (req, res) => {
         customer: customer.id,
         items: [{ price: priceId }],
         payment_behavior: "default_incomplete",
-        expand: ["latest_invoice.payment_intent"],
+        expand: ["latest_invoice", "latest_invoice.payment_intent"],
         metadata: { lawyerId, subscriptionType },
       })
       .catch((err) => {
