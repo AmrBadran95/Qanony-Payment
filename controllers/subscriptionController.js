@@ -18,7 +18,6 @@ const createLawyerSubscription = async (req, res) => {
       customer: customerId,
       amount: 500000,
       currency: "egp",
-      payment_method_types: ["card"],
       metadata: {
         lawyerId,
         subscriptionType,

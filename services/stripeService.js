@@ -1,7 +1,7 @@
 const stripe = require("../config/stripe");
 const firestore = require("../config/firebase");
 
-async function getOrCreateCustomer(lawyerId, email, name = "") {
+async function getOrCreateCustomer(lawyerId, email) {
   const lawyerRef = firestore.collection("lawyers").doc(lawyerId);
   const doc = await lawyerRef.get();
 
@@ -16,7 +16,6 @@ async function getOrCreateCustomer(lawyerId, email, name = "") {
   }
 
   const customer = await stripe.customers.create({
-    name,
     email,
     metadata: { lawyerId },
   });
