@@ -20,7 +20,7 @@ const paymentIntentRoutes = require("./routes/paymentRoutes");
 app.use("/api/subscriptions", subscriptionControllerRoutes);
 app.use("/api/stripe-customers", stripeCustomerRoutes);
 app.use("/api/stripe-connect", stripeConnectRoutes);
-app.use("/api//payment-intent-secret", paymentIntentRoutes);
+app.use("/api/payment-intent-secret", paymentIntentRoutes);
 
 app.get("/", (req, res) => {
   res.send("Qanony Stripe + Firebase server is running!");
