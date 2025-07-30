@@ -21,8 +21,17 @@ const createLawyerSubscription = async (req, res) => {
       expand: ["latest_invoice.payment_intent"],
     });
 
-    const clientSecret =
-      subscription.latest_invoice.payment_intent.client_secret;
+    let clientSecret = null;
+
+    if (
+      subscription.latest_invoice &&
+      subscription.latest_invoice.payment_intent &&
+      subscription.latest_invoice.payment_intent.client_secret
+    ) {
+      clientSecret = subscription.latest_invoice.payment_intent.client_secret;
+    } else {
+      console.warn("No client_secret found in subscription response");
+    }
 
     res.status(200).json({
       success: true,
