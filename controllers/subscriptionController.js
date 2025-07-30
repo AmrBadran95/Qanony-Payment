@@ -1,4 +1,4 @@
-const createSubscription = async (req, res) => {
+const createLawyerSubscription = async (req, res) => {
   try {
     const { lawyerId, priceId, subscriptionType } = req.body;
 
@@ -25,4 +25,8 @@ const createSubscription = async (req, res) => {
       .status(500)
       .json({ success: false, message: "Failed to create subscription" });
   }
+};
+
+module.exports = {
+  createLawyerSubscription,
 };
