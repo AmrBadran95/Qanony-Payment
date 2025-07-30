@@ -28,7 +28,7 @@ exports.createLawyerSubscription = async (req, res) => {
       items: [{ price: priceId }],
       payment_behavior: "default_incomplete",
       payment_settings: {
-        payment_method_types: ["card"],
+        save_default_payment_method: "on_subscription",
       },
       expand: ["latest_invoice.payment_intent"],
       metadata: { lawyerId, subscriptionType },
