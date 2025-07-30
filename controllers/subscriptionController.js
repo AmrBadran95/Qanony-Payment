@@ -22,6 +22,11 @@ exports.createLawyerSubscription = async (req, res) => {
       });
       console.log("Created new customer:", customer.id);
     }
+
+    await firestore.collection("lawyers").doc(lawyerId).update({
+      stripeCustomerId: customer.id,
+    });
+
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{ price: priceId }],
@@ -71,7 +76,7 @@ exports.createLawyerSubscription = async (req, res) => {
     });
 
     return res.json({
-      clientSecret: subscription.latest_invoice.payment_intent.client_secret,
+      clientSecret: paymentIntent.client_secret,
       subscriptionId: subscription.id,
     });
   } catch (error) {
