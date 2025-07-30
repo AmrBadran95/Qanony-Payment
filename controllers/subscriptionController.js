@@ -3,31 +3,34 @@ const stripe = require("../config/stripe");
 
 const createLawyerSubscription = async (req, res) => {
   try {
-    const { lawyerId, priceId, subscriptionType, email } = req.body;
+    const { lawyerId, email, subscriptionType } = req.body;
 
-    if (!lawyerId || !priceId || !email || !subscriptionType) {
+    if (!lawyerId || !email || !subscriptionType) {
       return res.status(400).json({
         success: false,
-        message: "lawyerId, priceId, email, and subscriptionType are required",
+        message: "lawyerId, email, and subscriptionType are required",
       });
     }
 
     const customerId = await getOrCreateCustomer(lawyerId, email);
 
-    const subscription = await stripe.subscriptions.create({
+    const paymentIntent = await stripe.paymentIntents.create({
       customer: customerId,
-      items: [{ price: priceId }],
-      collection_method: "send_invoice",
-      days_until_due: 7,
+      amount: 500000,
+      currency: "egp",
+      payment_method_types: ["card"],
+      metadata: {
+        lawyerId,
+        subscriptionType,
+      },
+      receipt_email: email,
     });
-
-    const invoice = await stripe.invoices.retrieve(subscription.latest_invoice);
 
     res.status(200).json({
       success: true,
-      subscriptionId: subscription.id,
-      invoiceUrl: invoice.hosted_invoice_url,
-      status: subscription.status,
+      subscriptionId: paymentIntent.id,
+      clientSecret: paymentIntent.client_secret,
+      status: "pending",
     });
   } catch (err) {
     console.error("Subscription error:", err);

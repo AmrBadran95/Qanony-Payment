@@ -16,6 +16,10 @@ exports.handleWebhook = async (req, res) => {
 
   try {
     switch (event.type) {
+      case "payment_intent.succeeded":
+        await webhookService.routePaymentIntentSucceeded(event.data.object);
+        break;
+
       case "checkout.session.completed":
         await webhookService.routeCheckoutCompleted(event.data.object);
         break;
