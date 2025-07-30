@@ -9,16 +9,28 @@ const createConnectAccount = async (req, res) => {
   const { lawyerId, email } = req.body;
 
   try {
-    const account = await createConnectedAccount(email);
-    const accountLink = await createAccountLink(account.id);
+    const lawyerDoc = await db.collection("lawyers").doc(lawyerId).get();
+    if (!lawyerDoc.exists) {
+      return res.status(404).json({ error: "Lawyer not found." });
+    }
 
-    await updateLawyerStripeAccount(lawyerId, {
-      stripeConnectAccountId: account.id,
-      stripeOnboardingStartedAt: new Date().toISOString(),
-    });
+    const lawyerData = lawyerDoc.data();
+
+    let accountId = lawyerData.stripeConnectAccountId;
+    if (!accountId) {
+      const account = await createConnectedAccount(email);
+      accountId = account.id;
+
+      await updateLawyerStripeAccount(lawyerId, {
+        stripeConnectAccountId: accountId,
+        stripeOnboardingStartedAt: new Date().toISOString(),
+      });
+    }
+
+    const accountLink = await createAccountLink(accountId);
 
     res.status(200).json({
-      accountId: account.id,
+      accountId,
       url: accountLink.url,
     });
   } catch (err) {
