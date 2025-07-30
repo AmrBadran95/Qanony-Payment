@@ -21,12 +21,24 @@ router.post(
 
     try {
       const eventType = event.type;
-      const paymentIntent = event.data.object;
+      const data = event.data.object;
 
       if (eventType === "payment_intent.succeeded") {
-        await handlePaymentSuccess(paymentIntent);
+        await handlePaymentSuccess(data);
       } else if (eventType === "payment_intent.payment_failed") {
-        await handlePaymentFailure(paymentIntent);
+        await handlePaymentFailure(data);
+      } else if (eventType === "invoice.paid") {
+        const paymentIntentId = data.payment_intent;
+        if (paymentIntentId) {
+          const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+          console.log(
+            "Handling invoice.paid via paymentIntent:",
+            paymentIntentId
+          );
+          await handlePaymentSuccess(intent);
+        } else {
+          console.warn("invoice.paid received but no payment_intent found.");
+        }
       }
 
       res.status(200).send("Webhook received");
@@ -42,6 +54,8 @@ const handlePaymentSuccess = async (paymentIntent) => {
   const amount = paymentIntent.amount;
   const paymentMethod = paymentIntent.payment_method;
   const status = paymentIntent.status;
+
+  console.log("handlePaymentSuccess:", transactionId, status);
 
   const paymentDoc = await firestoreService.findPaymentByTransactionId(
     transactionId
@@ -59,6 +73,8 @@ const handlePaymentSuccess = async (paymentIntent) => {
   });
 
   const payment = paymentDoc.data;
+
+  console.log("Payment Success - Type:", payment.role, payment.paymentType);
 
   switch (`${payment.role}-${payment.paymentType}`) {
     case "lawyer-subscription":
@@ -126,6 +142,8 @@ const handleConsultationPayment = async (
 const handlePaymentFailure = async (paymentIntent) => {
   const transactionId = paymentIntent.id;
   const status = paymentIntent.status;
+
+  console.log("handlePaymentFailure:", transactionId, status);
 
   const paymentDoc = await firestoreService.findPaymentByTransactionId(
     transactionId
