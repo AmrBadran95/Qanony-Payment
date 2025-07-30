@@ -43,13 +43,14 @@ exports.createLawyerSubscription = async (req, res) => {
 
     let paymentIntent = subscription.latest_invoice?.payment_intent;
 
-    if (!paymentIntent || !paymentIntent.client_secret) {
+    let attempts = 0;
+    const invoiceId = subscription.latest_invoice?.id;
+    while ((!paymentIntent || !paymentIntent.client_secret) && attempts < 3) {
       console.warn(
-        "PaymentIntent missing or no client_secret. Waiting 2 seconds..."
+        `PaymentIntent not ready, retrying in 2s... (attempt ${attempts + 1})`
       );
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const invoiceId = subscription.latest_invoice?.id;
       if (invoiceId) {
         const invoice = await stripe.invoices.retrieve(invoiceId, {
           expand: ["payment_intent"],
@@ -60,6 +61,7 @@ exports.createLawyerSubscription = async (req, res) => {
           console.log("Fetched PaymentIntent manually:", paymentIntent.id);
         }
       }
+      attempts++;
     }
 
     if (!paymentIntent || !paymentIntent.client_secret) {

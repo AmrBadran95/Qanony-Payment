@@ -24,6 +24,16 @@ exports.handleWebhook = async (req, res) => {
         await webhookService.routeInvoicePaid(event.data.object);
         break;
 
+      case "invoice.finalized":
+        console.log("Invoice finalized:", event.data.object.id);
+        break;
+
+      case "payment_intent.created":
+      case "customer.subscription.created":
+      case "invoice.created":
+        console.log(`Received and ignored event type: ${event.type}`);
+        break;
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
