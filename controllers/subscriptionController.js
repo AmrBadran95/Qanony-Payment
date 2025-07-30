@@ -17,36 +17,17 @@ const createLawyerSubscription = async (req, res) => {
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
       items: [{ price: priceId }],
-      payment_behavior: "default_incomplete",
-      collection_method: "charge_automatically",
-      payment_settings: {
-        payment_method_types: ["card"],
-        save_default_payment_method: "on_subscription",
-      },
-      expand: ["latest_invoice.payment_intent"],
+      collection_method: "send_invoice",
+      days_until_due: 7,
     });
 
-    let err = console.dir(subscription, { depth: null });
-    console.dir(subscription, { depth: null });
-
-    let clientSecret = null;
-
-    if (
-      subscription.latest_invoice &&
-      subscription.latest_invoice.payment_intent &&
-      subscription.latest_invoice.payment_intent.client_secret
-    ) {
-      clientSecret = subscription.latest_invoice.payment_intent.client_secret;
-    } else {
-      console.warn("No client_secret found in subscription response");
-    }
+    const invoice = await stripe.invoices.retrieve(subscription.latest_invoice);
 
     res.status(200).json({
       success: true,
       subscriptionId: subscription.id,
-      clientSecret,
-      status: "pending",
-      err: err,
+      invoiceUrl: invoice.hosted_invoice_url,
+      status: subscription.status,
     });
   } catch (err) {
     console.error("Subscription error:", err);
