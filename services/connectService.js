@@ -18,8 +18,8 @@ async function createConnectedAccount(email) {
 async function createAccountLink(accountId) {
   return await stripe.accountLinks.create({
     account: accountId,
-    return_url: "https://qanony.app/success",
-    refresh_url: "https://qanony.app/retry",
+    return_url: "qanony://connect-success",
+    refresh_url: "qanony://connect-retry",
     type: "account_onboarding",
   });
 }
