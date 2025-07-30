@@ -3,16 +3,16 @@ const stripe = require("../config/stripe");
 
 const createLawyerSubscription = async (req, res) => {
   try {
-    const { lawyerId, priceId, subscriptionType, email, name } = req.body;
+    const { lawyerId, priceId, subscriptionType, email } = req.body;
 
-    if (!lawyerId || !priceId || !email || !name) {
+    if (!lawyerId || !priceId || !email || !subscriptionType) {
       return res.status(400).json({
         success: false,
-        message: "lawyerId, priceId, name, and email are required",
+        message: "lawyerId, priceId, email, and subscriptionType are required",
       });
     }
 
-    const customerId = await getOrCreateCustomer(lawyerId, email, name);
+    const customerId = await getOrCreateCustomer(lawyerId, email);
 
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
