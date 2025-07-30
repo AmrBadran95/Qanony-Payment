@@ -4,46 +4,50 @@ const stripe = require("../config/stripe");
 const firestoreService = require("../services/firestoreService");
 const SubscriptionModel = require("../models/subscriptionModel");
 
-router.post("/", async (req, res) => {
-  const sig = req.headers["stripe-signature"];
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+router.post(
+  "/",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const sig = req.headers["stripe-signature"];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-  } catch (err) {
-    console.error("Webhook signature verification failed:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  try {
-    const eventType = event.type;
-    const data = event.data.object;
-
-    if (eventType === "payment_intent.succeeded") {
-      await handlePaymentSuccess(data);
-    } else if (eventType === "payment_intent.payment_failed") {
-      await handlePaymentFailure(data);
-    } else if (eventType === "invoice.paid") {
-      const paymentIntentId = data.payment_intent;
-      if (paymentIntentId) {
-        const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
-        console.log(
-          "Handling invoice.paid via paymentIntent:",
-          paymentIntentId
-        );
-        await handlePaymentSuccess(intent);
-      } else {
-        console.warn("invoice.paid received but no payment_intent found.");
-      }
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+    } catch (err) {
+      console.error("Webhook signature verification failed:", err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    res.status(200).send("Webhook received");
-  } catch (err) {
-    console.error("Webhook handling error:", err);
-    res.status(500).send("Internal Server Error");
+    try {
+      const eventType = event.type;
+      const data = event.data.object;
+
+      if (eventType === "payment_intent.succeeded") {
+        await handlePaymentSuccess(data);
+      } else if (eventType === "payment_intent.payment_failed") {
+        await handlePaymentFailure(data);
+      } else if (eventType === "invoice.paid") {
+        const paymentIntentId = data.payment_intent;
+        if (paymentIntentId) {
+          const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+          console.log(
+            "Handling invoice.paid via paymentIntent:",
+            paymentIntentId
+          );
+          await handlePaymentSuccess(intent);
+        } else {
+          console.warn("invoice.paid received but no payment_intent found.");
+        }
+      }
+
+      res.status(200).send("Webhook received");
+    } catch (err) {
+      console.error("Webhook handling error:", err);
+      res.status(500).send("Internal Server Error");
+    }
   }
-});
+);
 
 const handlePaymentSuccess = async (paymentIntent) => {
   const transactionId = paymentIntent.id;
