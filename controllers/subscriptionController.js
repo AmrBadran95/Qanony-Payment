@@ -25,6 +25,9 @@ const createLawyerSubscription = async (req, res) => {
       expand: ["latest_invoice.payment_intent"],
     });
 
+    let err = console.dir(subscription, { depth: null });
+    console.dir(subscription, { depth: null });
+
     let clientSecret = null;
 
     if (
@@ -42,6 +45,7 @@ const createLawyerSubscription = async (req, res) => {
       subscriptionId: subscription.id,
       clientSecret,
       status: "pending",
+      err: err,
     });
   } catch (err) {
     console.error("Subscription error:", err);
