@@ -15,6 +15,7 @@ exports.createLawyerSubscription = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    let customer;
     const customers = await stripe.customers
       .list({ email, limit: 1 })
       .catch((err) => {
@@ -22,9 +23,9 @@ exports.createLawyerSubscription = async (req, res) => {
         throw new Error("Stripe customer lookup failed");
       });
 
-    let customer;
     if (customers.data.length > 0) {
       customer = customers.data[0];
+      console.log("Found existing customer:", customer.id);
     } else {
       customer = await stripe.customers
         .create({
@@ -35,6 +36,7 @@ exports.createLawyerSubscription = async (req, res) => {
           console.error("Failed to create Stripe customer:", err.message);
           throw new Error("Stripe customer creation failed");
         });
+      console.log("Created new customer:", customer.id);
     }
 
     const subscription = await stripe.subscriptions
@@ -47,8 +49,6 @@ exports.createLawyerSubscription = async (req, res) => {
       })
       .catch((err) => {
         console.error("Failed to create Stripe subscription:", err.message);
-        console.log("Full subscription object:");
-        console.log(JSON.stringify(subscription, null, 2));
         throw new Error("Stripe subscription creation failed");
       });
 
@@ -57,16 +57,22 @@ exports.createLawyerSubscription = async (req, res) => {
       return res.status(500).json({ error: "Failed to create subscription" });
     }
 
+    console.log("Subscription created. ID:", subscription.id);
+    console.log("Subscription status:", subscription.status);
+    console.log("Latest invoice ID:", subscription.latest_invoice?.id);
+
     const paymentIntent = subscription.latest_invoice?.payment_intent;
     if (!paymentIntent) {
-      console.error(
-        "Missing payment intent in subscription:",
-        JSON.stringify(subscription, null, 2)
-      );
+      console.error("Missing payment intent in subscription");
+      console.dir(subscription, { depth: null });
       return res
         .status(500)
         .json({ error: "Payment intent not available in subscription" });
     }
+
+    console.log("PaymentIntent ID:", paymentIntent.id);
+    console.log("PaymentIntent status:", paymentIntent.status);
+    console.log("Client Secret:", paymentIntent.client_secret);
 
     await firestore
       .collection("payments")
@@ -92,8 +98,8 @@ exports.createLawyerSubscription = async (req, res) => {
   } catch (error) {
     console.error("Error creating subscription:", error.message);
     console.error(error.stack);
-    return res
-      .status(500)
-      .json({ error: error.message || "Failed to create subscription" });
+    return res.status(500).json({
+      error: error.message || "Failed to create subscription",
+    });
   }
 };
