@@ -56,7 +56,7 @@ exports.routeInvoicePaid = async (invoice) => {
       createdAt: now,
     });
 
-    await db.collection("subscriptions").add(subscriptionData.toFirestore());
+    await db.collection("subscriptions").add(subscriptionData.toPlainObject());
 
     await lawyerDoc.ref.update({
       subscriptionType: paymentData.subscriptionType,

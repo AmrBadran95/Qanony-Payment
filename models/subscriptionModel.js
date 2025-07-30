@@ -4,7 +4,7 @@ class SubscriptionModel {
     subscriptionType = "one_time",
     subscriptionStart = new Date(),
     subscriptionEnd = null,
-    moneyPaid = 5000,
+    moneyPaid = 0,
     subscriptionStatus = "active",
     currency = "egp",
     createdAt = new Date(),
@@ -30,15 +30,6 @@ class SubscriptionModel {
       currency: this.currency,
       createdAt: this.createdAt,
     };
-  }
-
-  static fromPaymentIntent(intent, lawyerId) {
-    return new SubscriptionModel({
-      lawyerId,
-      moneyPaid: intent.amount / 100,
-      subscriptionStart: new Date(intent.created * 1000),
-      currency: intent.currency,
-    });
   }
 }
 
