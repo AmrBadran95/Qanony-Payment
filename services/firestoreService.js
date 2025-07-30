@@ -77,9 +77,33 @@ const getLawyerById = async (lawyerId) => {
   }
 };
 
+const findPaymentByTransactionId = async (transactionId) => {
+  try {
+    const snapshot = await db
+      .collection("payments")
+      .where("transactionId", "==", transactionId)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    const doc = snapshot.docs[0];
+    return {
+      id: doc.id,
+      data: doc.data(),
+    };
+  } catch (error) {
+    console.error("Error finding payment by transaction ID:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   saveSubscription,
   updateLawyerSubscriptionInfo,
   updateLawyerStripeAccount,
   getLawyerById,
+  findPaymentByTransactionId,
 };
