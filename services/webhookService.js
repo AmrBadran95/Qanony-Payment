@@ -1,103 +1,68 @@
-const db = require("../config/firebase");
-const SubscriptionModel = require("../models/subscriptionModel");
+const subscriptionService = require("./subscriptionService");
+const paymentService = require("./paymentService");
 
-exports.routeInvoicePaid = async (invoice) => {
-  const subscriptionId = invoice.subscription;
-  const customerId = invoice.customer;
-  const paymentIntentId = invoice.payment_intent;
-  const amountPaid = invoice.amount_paid;
+const handleEvent = async (event) => {
+  switch (event.type) {
+    case "payment_intent.succeeded":
+      await handlePaymentIntentSucceeded(event.data.object);
+      break;
 
-  try {
-    const lawyersSnapshot = await db
-      .collection("lawyers")
-      .where("stripeCustomerId", "==", customerId)
-      .limit(1)
-      .get();
+    case "payment_intent.payment_failed":
+      await handlePaymentIntentFailed(event.data.object);
+      break;
 
-    if (lawyersSnapshot.empty) {
-      console.warn("No lawyer found with this customerId:", customerId);
-      return;
-    }
+    case "customer.subscription.deleted":
+      await handleSubscriptionDeleted(event.data.object);
+      break;
 
-    const lawyerDoc = lawyersSnapshot.docs[0];
-    const lawyerId = lawyerDoc.id;
-
-    const paymentsSnapshot = await db
-      .collection("payments")
-      .where("subscriptionId", "==", subscriptionId)
-      .limit(1)
-      .get();
-
-    if (paymentsSnapshot.empty) {
-      console.warn("No payment record found for subscription:", subscriptionId);
-      return;
-    }
-
-    const paymentDoc = paymentsSnapshot.docs[0];
-    const paymentData = paymentDoc.data();
-
-    const now = new Date();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 1);
-
-    await paymentDoc.ref.update({
-      status: "paid",
-      paymentIntentId,
-      moneyPaid: amountPaid / 100,
-      updatedAt: now,
-    });
-
-    const subscriptionData = new SubscriptionModel({
-      lawyerId,
-      subscriptionType: paymentData.subscriptionType,
-      subscriptionStart: now,
-      subscriptionEnd: endDate,
-      moneyPaid: amountPaid / 100,
-      createdAt: now,
-    });
-
-    await db.collection("subscriptions").add(subscriptionData.toPlainObject());
-
-    await lawyerDoc.ref.update({
-      subscriptionType: paymentData.subscriptionType,
-      subscriptionStart: now,
-      subscriptionEnd: endDate,
-    });
-
-    console.log(`invoice.paid handled successfully for lawyer (${lawyerId})`);
-  } catch (error) {
-    console.error("Error handling invoice.paid:", error);
-    throw error;
+    default:
+      console.log(`Unhandled event type: ${event.type}`);
   }
 };
 
-exports.routeCheckoutCompleted = async (session) => {
-  try {
-    const { payment_intent: paymentIntentId, amount_total, metadata } = session;
+const handlePaymentIntentSucceeded = async (paymentIntent) => {
+  const metadata = paymentIntent.metadata || {};
 
-    const { lawyerId, userId, orderId } = metadata || {};
-
-    if (!lawyerId || !userId || !orderId) {
-      console.warn("Missing metadata in checkout.session.completed");
-      return;
-    }
-
-    const paymentData = {
-      lawyerId,
-      userId,
-      orderId,
-      paymentIntentId,
-      moneyPaid: amount_total / 100,
-      paymentType: "one_time",
-      status: "paid",
-      createdAt: new Date(),
-    };
-
-    await db.collection("payments").add(paymentData);
-
-    console.log("One-time payment recorded successfully.");
-  } catch (error) {
-    console.error("Error handling checkout.session.completed:", error);
-    throw error;
+  if (metadata.paymentType === "subscription") {
+    console.log(
+      `Subscription payment succeeded for lawyerId: ${metadata.lawyerId}`
+    );
+    await subscriptionService.createOrUpdateSubscription(
+      metadata.lawyerId,
+      metadata.subscriptionType,
+      paymentIntent.amount / 100
+    );
+  } else if (metadata.paymentType === "client-service") {
+    console.log(
+      `Client service payment succeeded for orderId: ${metadata.orderId}`
+    );
+    await paymentService.processLawyerPayment({
+      orderId: metadata.orderId,
+      lawyerId: metadata.lawyerId,
+    });
+  } else {
+    console.log(
+      "PaymentIntent succeeded with unknown paymentType metadata:",
+      metadata
+    );
   }
+};
+
+const handlePaymentIntentFailed = async (paymentIntent) => {
+  const metadata = paymentIntent.metadata || {};
+  console.log(
+    `PaymentIntent failed for paymentType: ${metadata.paymentType}`,
+    paymentIntent.id
+  );
+};
+
+const handleSubscriptionDeleted = async (subscription) => {
+  console.log(`Subscription deleted: ${subscription.id}`);
+};
+
+module.exports = {
+  handleEvent,
+  handlePaymentIntentSucceeded,
+  handlePaymentIntentFailed,
+  handleSubscriptionDeleted,
 };

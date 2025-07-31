@@ -1,29 +1,29 @@
-const getPaymentIntentSecret = async (req, res) => {
+const paymentService = require("../services/paymentService");
+
+const handleClientPayment = async (req, res) => {
   try {
-    const { invoiceId } = req.query;
+    const { orderId, lawyerId } = req.body;
 
-    const invoice = await stripe.invoices.retrieve(invoiceId);
-
-    if (!invoice.payment_intent) {
+    if (!orderId || !lawyerId) {
       return res
-        .status(202)
-        .json({ ready: false, message: "PaymentIntent not ready yet" });
+        .status(400)
+        .json({ success: false, message: "Missing orderId or lawyerId" });
     }
 
-    const paymentIntent = await stripe.paymentIntents.retrieve(
-      invoice.payment_intent
-    );
-
-    return res.status(200).json({
-      ready: true,
-      clientSecret: paymentIntent.client_secret,
+    const result = await paymentService.processLawyerPayment({
+      orderId,
+      lawyerId,
     });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Payment processed", result });
   } catch (err) {
-    console.error("Failed to fetch payment intent:", err);
-    res.status(500).json({ ready: false, message: "Internal error" });
+    console.error("Error processing payment:", err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
 module.exports = {
-  getPaymentIntentSecret,
+  handleClientPayment,
 };
