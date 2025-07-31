@@ -5,12 +5,11 @@ require("./config/firebase");
 
 const app = express();
 
-app.use("/api/webhook", express.raw({ type: "application/json" }));
-const webhookRoutes = require("./routes/webhookRoutes");
-app.use("/api/webhook", webhookRoutes);
-
 app.use(cors());
 app.use(express.json());
+
+const webhookRoutes = require("./routes/webhookRoutes");
+app.use("/api/webhook", webhookRoutes);
 
 const subscriptionControllerRoutes = require("./routes/subscriptionRoutes");
 const stripeConnectRoutes = require("./routes/connectRoutes");
