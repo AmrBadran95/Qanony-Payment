@@ -32,16 +32,16 @@ const createLawyerSubscription = async (req, res) => {
       });
     }
 
-    if (subscriptionType === "percentage") {
+    if (subscriptionType === "percentage" || subscriptionType === "free") {
       await subscriptionService.createOrUpdateSubscription(
         lawyerId,
-        "percentage",
+        subscriptionType,
         0
       );
 
       return res.status(200).json({
         success: true,
-        message: "Percentage-based subscription activated",
+        message: `${subscriptionType} subscription activated`,
       });
     }
 
