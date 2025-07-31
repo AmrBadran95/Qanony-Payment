@@ -52,20 +52,18 @@ const processLawyerPayment = async ({ orderId, lawyerId }) => {
 
 const createPaymentIntentForClient = async ({ orderId, lawyerId }) => {
   const lawyerDoc = await db.collection("lawyers").doc(lawyerId).get();
-
   if (!lawyerDoc.exists) throw new Error("Lawyer not found");
 
   const orderDoc = await db.collection("orders").doc(orderId).get();
-
   if (!orderDoc.exists) throw new Error("Order not found");
 
   const orderData = orderDoc.data();
-  const { price, currency = "egp" } = orderData;
+  const { price: amount, currency = "egp" } = orderData;
 
-  if (!price) throw new Error("Order has no price");
+  if (!amount) throw new Error("Order has no amount");
 
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: price * 100,
+    amount,
     currency,
     metadata: {
       paymentType: "client-service",
