@@ -37,8 +37,8 @@ const createOrUpdateSubscription = async (
 
   await db.collection("lawyers").doc(lawyerId).update({
     subscriptionType,
-    subscriptionStartDate: startDate,
-    subscriptionEndDate: endDate,
+    subscriptionStart: startDate,
+    subscriptionEnd: endDate,
   });
 
   console.log(`Subscription (${subscriptionType}) set for lawyer: ${lawyerId}`);
