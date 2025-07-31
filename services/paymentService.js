@@ -63,7 +63,7 @@ const createPaymentIntentForClient = async ({ orderId, lawyerId }) => {
   if (!amount) throw new Error("Order has no amount");
 
   const paymentIntent = await stripe.paymentIntents.create({
-    amount,
+    amount: amount * 100,
     currency,
     metadata: {
       paymentType: "client-service",
