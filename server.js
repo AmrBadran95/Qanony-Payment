@@ -1,9 +1,12 @@
 const express = require("express");
 const cors = require("cors");
+const bodyParser = require("body-parser");
 require("dotenv").config();
 require("./config/firebase");
 
 const app = express();
+
+app.use("/api/webhook", bodyParser.raw({ type: "application/json" }));
 
 app.use(cors());
 app.use(express.json());
