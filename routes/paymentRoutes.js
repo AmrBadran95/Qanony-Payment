@@ -7,7 +7,7 @@ router.post("/lawyer-payout", paymentController.handleClientPayment);
 
 router.post(
   "/create-client-payment-intent",
-  paymentController.createClientPayment
+  paymentController.createClientPaymentIntent
 );
 
 module.exports = router;
