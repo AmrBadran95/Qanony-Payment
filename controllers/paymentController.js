@@ -24,6 +24,36 @@ const handleClientPayment = async (req, res) => {
   }
 };
 
+const createPaymentIntentForClient = async ({ orderId, lawyerId }) => {
+  const lawyerDoc = await db.collection("lawyers").doc(lawyerId).get();
+
+  if (!lawyerDoc.exists) throw new Error("Lawyer not found");
+
+  const orderDoc = await db.collection("orders").doc(orderId).get();
+
+  if (!orderDoc.exists) throw new Error("Order not found");
+
+  const orderData = orderDoc.data();
+  const { amount, currency = "egp" } = orderData;
+
+  if (!amount) throw new Error("Order has no amount");
+
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount,
+    currency,
+    metadata: {
+      paymentType: "client-service",
+      orderId,
+      lawyerId,
+    },
+  });
+
+  return {
+    clientSecret: paymentIntent.client_secret,
+  };
+};
+
 module.exports = {
   handleClientPayment,
+  createClientPaymentIntent,
 };
