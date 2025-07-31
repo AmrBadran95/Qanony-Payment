@@ -17,10 +17,12 @@ app.use("/api/webhook", webhookRoutes);
 const subscriptionControllerRoutes = require("./routes/subscriptionRoutes");
 const stripeConnectRoutes = require("./routes/connectRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
-
+const notificationRoutes = require("./routes/notificationRoutes");
+  
 app.use("/api/subscriptions", subscriptionControllerRoutes);
 app.use("/api/stripe-connect", stripeConnectRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.get("/", (req, res) => {
   res.send("Qanony Stripe + Firebase server is running!");
