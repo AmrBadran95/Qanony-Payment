@@ -30,7 +30,7 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
     await subscriptionService.createOrUpdateSubscription(
       metadata.lawyerId,
       metadata.subscriptionType,
-      paymentIntent.amount / 100
+      paymentIntent.price / 100
     );
   } else if (metadata.paymentType === "client-service") {
     console.log(

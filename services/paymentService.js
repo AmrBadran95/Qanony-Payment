@@ -20,13 +20,13 @@ const processLawyerPayment = async ({ orderId, lawyerId }) => {
   const orderData = orderDoc.data();
   const { price, currency = "egp" } = orderData;
 
-  if (!price) throw new Error("Order has no amount");
+  if (!price) throw new Error("Order has no price");
 
   const percentage = subscriptionType === "fixed" ? 1 : 0.8;
   const payoutAmount = Math.round(price * percentage);
 
   const transfer = await stripe.transfers.create({
-    amount: payoutAmount,
+    price: payoutAmount,
     currency,
     destination: stripeConnectAccountId,
     metadata: {
