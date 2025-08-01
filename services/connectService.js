@@ -9,6 +9,9 @@ async function createConnectedAccount(email) {
     capabilities: {
       transfers: { requested: true },
     },
+    tos_acceptance: {
+      service_agreement: "recipient",
+    },
   });
 }
 
