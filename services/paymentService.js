@@ -27,7 +27,7 @@ const processLawyerPayment = async ({ orderId, lawyerId }) => {
 
   const transfer = await stripe.transfers.create({
     amount: payoutAmount,
-    currency: "egp",
+    currency: "usd",
     destination: stripeConnectAccountId,
     transfer_group: orderId,
     metadata: {
@@ -68,7 +68,7 @@ const createPaymentIntentForClient = async ({ orderId, lawyerId }) => {
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: price * 100,
-    currency: "egp",
+    currency: "usd",
     metadata: {
       paymentType: "client-service",
       orderId,
