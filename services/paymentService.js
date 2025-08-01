@@ -43,7 +43,7 @@ const processLawyerPayment = async ({ orderId, lawyerId }) => {
     subscriptionType,
     price,
     payoutAmount: payoutAmount / 100,
-    profit: price - payoutAmount,
+    profit: price - payoutAmount / 100,
     stripeTransferId: transfer.id,
     createdAt: new Date(),
     paymentType: "lawyer-service",
