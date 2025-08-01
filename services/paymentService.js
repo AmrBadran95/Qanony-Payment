@@ -73,6 +73,8 @@ const createPaymentIntentForClient = async ({ orderId, lawyerId }) => {
       paymentType: "client-service",
       orderId,
       lawyerId,
+      price: price.toString(),
+      subscriptionType: lawyerDoc.data().subscriptionType || "free",
     },
     transfer_group: orderId,
   });
