@@ -23,13 +23,13 @@ const processLawyerPayment = async ({ orderId, lawyerId }) => {
   if (!price) throw new Error("Order has no price");
 
   const percentage = subscriptionType === "fixed" ? 1 : 0.8;
-  const payoutAmount = Math.round(price * 100 * percentage); // 🟢 80% أو 100%
+  const payoutAmount = Math.round(price * 100 * percentage);
 
   const transfer = await stripe.transfers.create({
     amount: payoutAmount,
-    currency,
+    currency: "usd",
     destination: stripeConnectAccountId,
-    transfer_group: orderId, // 🟢 يربطه بـ paymentIntent
+    transfer_group: orderId,
     metadata: {
       lawyerId,
       orderId,
@@ -67,13 +67,13 @@ const createPaymentIntentForClient = async ({ orderId, lawyerId }) => {
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: price * 100,
-    currency,
+    currency: "usd",
     metadata: {
       paymentType: "client-service",
       orderId,
       lawyerId,
     },
-    transfer_group: orderId, // 🟢 عشان تقدر تعمل transfer لاحقًا
+    transfer_group: orderId,
   });
 
   return {
