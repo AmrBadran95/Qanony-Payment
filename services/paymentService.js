@@ -18,12 +18,12 @@ const processLawyerPayment = async ({ orderId, lawyerId }) => {
   if (!orderDoc.exists) throw new Error("Order not found");
 
   const orderData = orderDoc.data();
-  const { amount, currency = "egp" } = orderData;
+  const { price, currency = "egp" } = orderData;
 
-  if (!amount) throw new Error("Order has no amount");
+  if (!price) throw new Error("Order has no amount");
 
   const percentage = subscriptionType === "fixed" ? 1 : 0.8;
-  const payoutAmount = Math.round(amount * percentage);
+  const payoutAmount = Math.round(price * percentage);
 
   const transfer = await stripe.transfers.create({
     amount: payoutAmount,
@@ -40,7 +40,7 @@ const processLawyerPayment = async ({ orderId, lawyerId }) => {
     lawyerId,
     orderId,
     subscriptionType,
-    amount,
+    price,
     payoutAmount,
     stripeTransferId: transfer.id,
     createdAt: new Date(),
@@ -65,7 +65,7 @@ const createPaymentIntentForClient = async ({ orderId, lawyerId }) => {
   }
 
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: price * 100,
+    price: price * 100,
     currency,
     metadata: {
       paymentType: "client-service",
