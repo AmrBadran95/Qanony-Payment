@@ -7,7 +7,24 @@ const sendNotification = async ({ fcmToken, title, body, data }) => {
       title,
       body,
     },
-    data,
+    data: {
+      ...data,
+      click_action: "FLUTTER_NOTIFICATION_CLICK",
+    },
+    android: {
+      priority: "high",
+      notification: {
+        channelId: "qanony_channel",
+        sound: "default",
+      },
+    },
+    apns: {
+      payload: {
+        aps: {
+          sound: "default",
+        },
+      },
+    },
   };
 
   await admin.messaging().send(message);

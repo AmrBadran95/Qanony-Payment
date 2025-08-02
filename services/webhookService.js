@@ -34,6 +34,26 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
       metadata.subscriptionType,
       amountPaid
     );
+
+    const lawyerDoc = await db
+      .collection("lawyers")
+      .doc(metadata.lawyerId)
+      .get();
+
+    if (lawyerDoc.exists) {
+      const lawyerData = lawyerDoc.data();
+
+      if (lawyerData.fcmToken) {
+        await sendNotification({
+          fcmToken: lawyerData.fcmToken,
+          title: "تم الاشتراك",
+          body: `تم دفع مبلغ ${amountPaid} لإشتراكك بنجاح.`,
+          data: {
+            type: "subscription_paid",
+          },
+        });
+      }
+    }
   } else if (metadata.paymentType === "client-service") {
     console.log(
       `Client service payment succeeded for orderId: ${metadata.orderId}`
@@ -42,6 +62,50 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
       orderId: metadata.orderId,
       lawyerId: metadata.lawyerId,
     });
+
+    const orderDoc = await db.collection("orders").doc(metadata.orderId).get();
+    const lawyerDoc = await db
+      .collection("lawyers")
+      .doc(metadata.lawyerId)
+      .get();
+
+    if (orderDoc.exists && lawyerDoc.exists) {
+      const orderData = orderDoc.data();
+      const lawyerData = lawyerDoc.data();
+
+      if (lawyerData.fcmToken) {
+        await sendNotification({
+          fcmToken: lawyerData.fcmToken,
+          title: "تم الدفع من عميل جديد",
+          body: `تم دفع ${orderData.price} جنيه لخدمة جديدة.`,
+          data: {
+            type: "payment_received",
+            orderId: metadata.orderId,
+          },
+        });
+      }
+
+      if (orderData.userId) {
+        const userDoc = await db
+          .collection("users")
+          .doc(orderData.userId)
+          .get();
+        if (clientDoc.exists) {
+          const userData = userDoc.data();
+          if (userData.fcmToken) {
+            await sendNotification({
+              fcmToken: userData.fcmToken,
+              title: "تم الدفع بنجاح",
+              body: `تم تأكيد دفع طلبك لخدمة المحامي.`,
+              data: {
+                type: "payment_success",
+                orderId: metadata.orderId,
+              },
+            });
+          }
+        }
+      }
+    }
   } else {
     console.log(
       "PaymentIntent succeeded with unknown paymentType metadata:",
