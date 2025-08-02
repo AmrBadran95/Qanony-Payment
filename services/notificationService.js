@@ -14,7 +14,7 @@ const sendNotification = async ({ fcmToken, title, body, data }) => {
     android: {
       priority: "high",
       notification: {
-        channelId: "qanony_channel",
+        channelId: "high_importance_channel",
         sound: "default",
       },
     },
