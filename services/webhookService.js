@@ -79,7 +79,7 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
           title: "تم الدفع من عميل جديد",
           body: `تم دفع ${orderData.price} جنيه لخدمة جديدة.`,
           data: {
-            type: "payment_received",
+            type: "lawyer_order_accepted",
             orderId: metadata.orderId,
           },
         });
@@ -98,7 +98,7 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
               title: "تم الدفع بنجاح",
               body: `تم تأكيد دفع طلبك لخدمة المحامي.`,
               data: {
-                type: "payment_success",
+                type: "user_order",
                 orderId: metadata.orderId,
               },
             });
