@@ -1,5 +1,6 @@
 const subscriptionService = require("./subscriptionService");
 const paymentService = require("./paymentService");
+const db = require("../config/firebase");
 
 const handleEvent = async (event) => {
   switch (event.type) {
