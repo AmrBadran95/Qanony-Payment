@@ -92,7 +92,7 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
           .collection("users")
           .doc(orderData.userId)
           .get();
-        if (clientDoc.exists) {
+        if (userDoc.exists) {
           const userData = userDoc.data();
           if (userData.fcmToken) {
             await sendNotification({
