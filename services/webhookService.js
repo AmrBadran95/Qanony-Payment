@@ -78,8 +78,8 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
       if (lawyerData.fcmToken) {
         await sendNotification({
           fcmToken: lawyerData.fcmToken,
-          title: "تم الدفع من عميل جديد",
-          body: `تم دفع ${orderData.price} جنيه لخدمة جديدة.`,
+          title: "تم تأكيد موعد",
+          body: `تم تحويل مبلغ ${orderData.price} إليك و لديك موعد مع العميل يوم ${orderData.date}`,
           data: {
             type: "lawyer_order_accepted",
             orderId: metadata.orderId,
