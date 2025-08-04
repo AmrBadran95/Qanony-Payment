@@ -2,18 +2,6 @@ const cron = require("node-cron");
 const db = require("../config/firebase");
 const { sendNotification } = require("../services/notificationService");
 
-const formatArabicDate = (date) =>
-  date.toLocaleString("ar-EG", {
-    timeZone: "Africa/Cairo",
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: true,
-  });
-
 const startNotificationScheduler = () => {
   cron.schedule("* * * * *", async () => {
     const now = new Date();
@@ -103,5 +91,17 @@ const handleAppointments = async (targetTime) => {
     }
   });
 };
+
+const formatArabicDate = (date) =>
+  date.toLocaleString("ar-EG", {
+    timeZone: "Africa/Cairo",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+  });
 
 module.exports = { startNotificationScheduler };
