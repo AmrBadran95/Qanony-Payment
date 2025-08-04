@@ -38,7 +38,7 @@ const startNotificationScheduler = () => {
           await sendNotification({
             fcmToken: userToken,
             title: "تنبيه بميعادك",
-            body: `عندك ميعاد مع المحامي يوم ${formatted}`,
+            body: `لديك موعد مع المحامي يوم ${formatted}`,
             data: { type: "user_order" },
           });
         }
@@ -47,7 +47,8 @@ const startNotificationScheduler = () => {
           await sendNotification({
             fcmToken: lawyerToken,
             title: "تنبيه بميعاد مع عميل",
-            body: `👤 عندك ميعاد مع عميل يوم ${formatted}`,
+            body: `
+            لديك موعد مع عميل يوم ${formatted}`,
             data: { type: "lawyer_order" },
           });
         }
@@ -82,8 +83,8 @@ const handleAppointments = async (targetTime) => {
         if (lawyerToken) {
           await sendNotification({
             fcmToken: lawyerToken,
-            title: "تذكير بميعادك الداخلي",
-            body: `عندك ميعاد داخلي يوم ${formatted}`,
+            title: "تنبيه بميعادك الخاص",
+            body: `لديك موعد خاص بك يوم ${formatted}`,
             data: { type: "lawyer_appointment" },
           });
         }

@@ -4,7 +4,7 @@ const {
 } = require("../services/subscriptionService");
 
 const startExpiredSubscriptionsCheckScheduler = () => {
-  cron.schedule("0 2 * * *", async () => {
+  cron.schedule("0 0 * * *", async () => {
     console.log("Daily subscription check start.");
 
     try {
