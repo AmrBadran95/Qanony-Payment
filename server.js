@@ -6,6 +6,9 @@ require("./config/firebase");
 const {
   startNotificationScheduler,
 } = require("./scripts/scheduledNotification");
+const {
+  startExpiredSubscriptionsCheckScheduler,
+} = require("./scripts/scheduledExpiredSubscriptionCheck");
 
 const app = express();
 
@@ -32,6 +35,7 @@ app.get("/", (req, res) => {
 });
 
 startNotificationScheduler();
+startExpiredSubscriptionsCheckScheduler();
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
