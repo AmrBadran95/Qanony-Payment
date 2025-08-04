@@ -18,7 +18,7 @@ const processLawyerPayment = async ({ orderId, lawyerId }) => {
   if (!orderDoc.exists) throw new Error("Order not found");
 
   const orderData = orderDoc.data();
-  const { price, currency = "egp" } = orderData;
+  const { price, currency = "usd" } = orderData;
 
   if (!price) throw new Error("Order has no price");
 
@@ -27,7 +27,7 @@ const processLawyerPayment = async ({ orderId, lawyerId }) => {
 
   const transfer = await stripe.transfers.create({
     amount: payoutAmount,
-    currency: "usd",
+    currency: currency,
     destination: stripeConnectAccountId,
     transfer_group: orderId,
     metadata: {
@@ -60,7 +60,7 @@ const createPaymentIntentForClient = async ({ orderId, lawyerId }) => {
   if (!orderDoc.exists) throw new Error("Order not found");
 
   const orderData = orderDoc.data();
-  const { price, currency = "egp" } = orderData;
+  const { price, currency = "usd" } = orderData;
 
   if (!price) {
     throw new Error("Order has no price");
@@ -68,7 +68,7 @@ const createPaymentIntentForClient = async ({ orderId, lawyerId }) => {
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: price * 100,
-    currency: "usd",
+    currency: currency,
     metadata: {
       paymentType: "client-service",
       orderId,
