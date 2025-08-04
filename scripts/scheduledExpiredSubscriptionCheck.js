@@ -1,5 +1,7 @@
 const cron = require("node-cron");
-const { checkExpiredSubscriptions } = require("./services/subscriptionService");
+const {
+  checkExpiredSubscriptions,
+} = require("../services/subscriptionService");
 
 const startExpiredSubscriptionsCheckScheduler = () => {
   cron.schedule("0 2 * * *", async () => {
