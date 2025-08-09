@@ -24,9 +24,9 @@ const handleEvent = async (event) => {
 
 const handlePaymentIntentSucceeded = async (paymentIntent) => {
   const metadata = paymentIntent.metadata || {};
+  const amountPaid = paymentIntent.amount_received / 100;
 
   if (metadata.paymentType === "subscription") {
-    const amountPaid = paymentIntent.amount_received / 100;
 
     console.log(
       `Subscription payment succeeded for lawyerId: ${metadata.lawyerId}`
